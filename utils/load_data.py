@@ -170,7 +170,7 @@ def load_dataset(data_dir, batch_size, valid_batch_size, test_batch_size, datase
 
     return data_dict
 
-def load_adj(file_path, adj_type):
+def load_adj(file_path, adj_type, is_npz):
     r"""
     Description:
     -----------
@@ -187,12 +187,15 @@ def load_adj(file_path, adj_type):
     -----------
         adj_matrix    
     """
-    try:
-        # METR and PEMS_BAY
-        sensor_ids, sensor_id_to_ind, adj_mx = load_pickle(file_path)
-    except:
-        # PEMS04
-        adj_mx = load_pickle(file_path)
+    if is_npz:
+        adj_mx = np.load(file_path)['x']
+    else:
+        try:
+            # METR and PEMS_BAY
+            sensor_ids, sensor_id_to_ind, adj_mx = load_pickle(file_path)
+        except:
+            # PEMS04
+            adj_mx = load_pickle(file_path)
     if adj_type == "scalap":
         adj = [calculate_scaled_laplacian(adj_mx).astype(np.float32).todense()]
     elif adj_type == "normlap":

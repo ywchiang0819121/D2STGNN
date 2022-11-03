@@ -64,7 +64,7 @@ class D2STGNN(nn.Module):
         self.embedding      = nn.Linear(self._in_feat, self._hidden_dim)
 
         # time embedding
-        self.T_i_D_emb  = nn.Parameter(torch.empty(288, model_args['time_emb_dim']))
+        self.T_i_D_emb  = nn.Parameter(torch.empty(24, model_args['time_emb_dim']))
         self.D_i_W_emb  = nn.Parameter(torch.empty(7, model_args['time_emb_dim']))
 
         # Decoupled Spatial Temporal Layer
@@ -83,6 +83,8 @@ class D2STGNN(nn.Module):
         # output layer
         self.out_fc_1   = nn.Linear(self._forecast_dim, self._output_hidden)
         self.out_fc_2   = nn.Linear(self._output_hidden, model_args['gap'])
+        self.out_fc_3   = nn.Linear(1, self._output_hidden)
+        self.out_fc_4   = nn.Linear(self._output_hidden, 2)
 
         self.reset_parameter()
 
@@ -111,7 +113,7 @@ class D2STGNN(nn.Module):
         node_emb_u  = self.node_emb_u  # [N, d]
         node_emb_d  = self.node_emb_d  # [N, d]
         # time slot embedding
-        time_in_day_feat = self.T_i_D_emb[(history_data[:, :, :, num_feat] * 288).type(torch.LongTensor)]    # [B, L, N, d]
+        time_in_day_feat = self.T_i_D_emb[(history_data[:, :, :, num_feat] * 24).type(torch.LongTensor)]    # [B, L, N, d]
         day_in_week_feat = self.D_i_W_emb[(history_data[:, :, :, num_feat+1]).type(torch.LongTensor)]          # [B, L, N, d]
         # traffic signals
         history_data = history_data[:, :, :, :num_feat]
@@ -141,6 +143,7 @@ class D2STGNN(nn.Module):
         inh_forecast_hidden_list = []
 
         inh_backcast_seq_res = history_data
+
         for _, layer in enumerate(self.layers):
             inh_backcast_seq_res, dif_forecast_hidden, inh_forecast_hidden = layer(inh_backcast_seq_res, dynamic_graph, static_graph, node_embedding_u, node_embedding_d, time_in_day_feat, day_in_week_feat)
             dif_forecast_hidden_list.append(dif_forecast_hidden)
@@ -152,7 +155,15 @@ class D2STGNN(nn.Module):
         forecast_hidden     = dif_forecast_hidden + inh_forecast_hidden
         
         # regression layer
-        forecast    = self.out_fc_2(F.relu(self.out_fc_1(F.relu(forecast_hidden))))
+        forecast    = F.relu(self.out_fc_1(F.relu(forecast_hidden)))
+        forecast    = F.relu(self.out_fc_2(forecast))
         forecast    = forecast.transpose(1,2).contiguous().view(forecast.shape[0], forecast.shape[2], -1)
+        originalshape = forecast.size()
+        # print(forecast.size())
+        forecast = torch.reshape(forecast, (originalshape[2], originalshape[1], originalshape[0]))
+        # print(forecast.size())
+        forecast  = self.out_fc_4(F.relu(self.out_fc_3(forecast)))
+        # forecast = torch.reshape(forecast, (3, originalshape[1], originalshape[2]))
+        # print(forecast.size())
 
         return forecast

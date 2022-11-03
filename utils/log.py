@@ -32,8 +32,8 @@ class TrainLogger():
     
     def __init__(self, model_name, dataset):
         path        = 'log/'
-        cur_time    = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-        cur_time    = cur_time.replace(" ", "-")
+        cur_time    = time.strftime("%Y_%m_%d %H-%M-%S", time.localtime())
+        cur_time    = cur_time.replace(" ", "_")
         # mkdir
         os.makedirs(path + cur_time)
         # pwd = os.getcwd() + "/"

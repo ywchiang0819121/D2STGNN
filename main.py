@@ -18,8 +18,9 @@ import setproctitle
 def main(**kwargs):
     set_config(0)
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='METR-LA', help='Dataset name.')
+    # parser.add_argument('--dataset', type=str, default='METR-LA', help='Dataset name.')
     # parser.add_argument('--dataset', type=str, default='PEMS-BAY', help='Dataset name.')
+    parser.add_argument('--dataset', type=str, default='BAST', help='Dataset name.')
     # parser.add_argument('--dataset', type=str, default='PEMS04', help='Dataset name.')
     # parser.add_argument('--dataset', type=str, default='PEMS08', help='Dataset name.')
     args = parser.parse_args()
@@ -56,7 +57,7 @@ def main(**kwargs):
         print("Load dataset: {:.2f}s...".format(t2-t1))
     scaler          = dataloader['scaler']
     
-    if dataset_name == 'PEMS04' or dataset_name == 'PEMS08':  # traffic flow
+    if dataset_name == 'PEMS04' or dataset_name == 'PEMS08' or dataset_name == 'BAST':  # traffic flow
         _min = pickle.load(open("datasets/{0}/min.pkl".format(dataset_name), 'rb'))
         _max = pickle.load(open("datasets/{0}/max.pkl".format(dataset_name), 'rb'))
     else:
@@ -64,7 +65,8 @@ def main(**kwargs):
         _max = None
     
     t1   = time.time()
-    adj_mx, adj_ori = load_adj(config['data_args']['adj_data_path'], config['data_args']['adj_type'])
+    adj_mx, adj_ori = load_adj(config['data_args']['adj_data_path'], config['data_args']['adj_type'],
+             is_npz=config['data_args']['is_npz'])
     t2  = time.time()
     print("Load adjacent matrix: {:.2f}s...".format(t2-t1))
 

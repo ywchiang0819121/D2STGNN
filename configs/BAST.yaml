@@ -11,14 +11,15 @@ start_up:
 
 # Data Processing
 data_args:
-  data_dir:       datasets/PEMS-BAY                       # data path
-  adj_data_path:  datasets/sensor_graph/adj_mx_bay.pkl    # adj data path
+  data_dir:       E:/MS/2021/MTGNN-master/data/BAST2WAYTIMEWEEK # data path
+  adj_data_path:  E:/MS/2021/MTGNN-master/data/sensor_graph/adj_mx_bast.npz    # adj data path
   adj_type:       doubletransition                        # adj type to preprocessing
-  is_npz:         False
+  is_npz:         True
+
 # Model Args
 model_args:
   batch_size:   1
-  num_feat:     1
+  num_feat:     2
   num_hidden:   32
   node_hidden:  12
   time_emb_dim: 12
