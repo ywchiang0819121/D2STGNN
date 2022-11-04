@@ -120,6 +120,9 @@ class trainer():
             ## loss
             mae_loss    = self.loss(predict[:, :self.cl_len, :], real_val[:, :self.cl_len, :], 0)
         loss = mae_loss
+        # if kwargs['accelerator_obj'] is not None:
+        #     kwargs['accelerator_obj'].backward(loss)
+        # else:
         loss.backward()
 
         # gradient clip and optimization

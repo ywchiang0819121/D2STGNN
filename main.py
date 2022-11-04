@@ -12,10 +12,12 @@ from utils.log import TrainLogger
 from models.losses import *
 from models import trainer
 from models.model import D2STGNN
+# from accelerate import Accelerator
 import yaml
 import setproctitle
 
 def main(**kwargs):
+    # accelerator = Accelerator()
     set_config(0)
     parser = argparse.ArgumentParser()
     # parser.add_argument('--dataset', type=str, default='METR-LA', help='Dataset name.')

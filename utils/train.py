@@ -84,4 +84,5 @@ def data_reshaper(data, device):
     Reshape data to any models.
     """
     data    = torch.Tensor(data).to(device)
+    # data    = torch.Tensor(data)
     return data
