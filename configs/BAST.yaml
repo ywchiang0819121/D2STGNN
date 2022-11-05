@@ -14,7 +14,7 @@ data_args:
   data_dir:       datasets/BAST2WAYTIMEWEEK # data path
   adj_data_path:  datasets/sensor_graph/adj_mx_bast.npz    # adj data path
   adj_type:       doubletransition                        # adj type to preprocessing
-  is_npz:         False
+  is_npz:         True
 
 # Model Args
 model_args:
