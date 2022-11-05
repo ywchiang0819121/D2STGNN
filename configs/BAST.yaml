@@ -18,7 +18,7 @@ data_args:
 
 # Model Args
 model_args:
-  batch_size:   96
+  batch_size:   3
   num_feat:     2
   num_hidden:   32
   node_hidden:  12

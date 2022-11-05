@@ -135,8 +135,8 @@ def main(**kwargs):
             for itera, (x, y) in enumerate(dataloader['train_loader'].get_iterator()):
                 trainx          = data_reshaper(x, device)
                 trainy          = data_reshaper(y, device)
-                mae, mape, rmse = engine.train(trainx, trainy, batch_num=batch_num, _max=_max, _min=_min)
-                # mae, mape, rmse = 0,0,0
+                # mae, mape, rmse = engine.train(trainx, trainy, batch_num=batch_num, _max=_max, _min=_min)
+                mae, mape, rmse = 0,0,0
                 print("{0}: {1}".format(itera, mae), end='\r')
                 train_loss.append(mae)
                 train_mape.append(mape)
@@ -155,8 +155,8 @@ def main(**kwargs):
             mtrain_rmse = np.mean(train_rmse)
 # =============================================================== Validation ================================================================= #
             time_val_start      = time.time()
-            mvalid_loss, mvalid_mape, mvalid_rmse, = engine.eval(device, dataloader, model_name, _max=_max, _min=_min)
-            # mvalid_loss, mvalid_mape, mvalid_rmse, = 0,0,0
+            # mvalid_loss, mvalid_mape, mvalid_rmse, = engine.eval(device, dataloader, model_name, _max=_max, _min=_min)
+            mvalid_loss, mvalid_mape, mvalid_rmse, = 0,0,0
             time_val_end        = time.time()
             val_time.append(time_val_end - time_val_start)
 
