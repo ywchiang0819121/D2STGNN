@@ -190,7 +190,7 @@ class trainer():
             testy   = data_reshaper(y, device)
             with torch.no_grad():
                 preds   = model(testx)
-
+            print(preds.size())
             outputs.append(preds)
             y_list.append(testy)
             # break
