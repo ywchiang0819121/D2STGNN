@@ -188,7 +188,6 @@ class trainer():
         for itera, (x, y) in enumerate(dataloader['test_loader'].get_iterator()):
             testx   = data_reshaper(x, device)
             testy   = data_reshaper(y, device).transpose(1, 2)
-            print(testx.size(), testy.size())
             with torch.no_grad():
                 preds   = model(testx)
 
@@ -204,7 +203,7 @@ class trainer():
             realy   = scaler(realy.squeeze(-1), kwargs["_max"][0, 0, 0, 0], kwargs["_min"][0, 0, 0, 0])
             yhat    = scaler(yhat.squeeze(-1), kwargs["_max"][0, 0, 0, 0], kwargs["_min"][0, 0, 0, 0])
         else:
-            realy   = scaler.inverse_transform(realy)[:, :, :, 0]
+            realy   = scaler.inverse_transform(realy)
             yhat    = scaler.inverse_transform(yhat)
         
         # summarize the results.
