@@ -156,7 +156,7 @@ def main(**kwargs):
 # =============================================================== Validation ================================================================= #
             time_val_start      = time.time()
             # mvalid_loss, mvalid_mape, mvalid_rmse, = engine.eval(device, dataloader, model_name, _max=_max, _min=_min)
-            # mvalid_loss, mvalid_mape, mvalid_rmse, = 0,0,0
+            mvalid_loss, mvalid_mape, mvalid_rmse, = 0,0,0
             time_val_end        = time.time()
             val_time.append(time_val_end - time_val_start)
 
