@@ -146,7 +146,7 @@ class trainer():
             testy   = data_reshaper(y, device)
             # for dstgnn
             output  = self.model(testx)
-            print(testx.size(), testy.size(), output.size())
+            # print(testx.size(), testy.size(), output.size())
             # output  = output.transpose(1,2)
             
             # scale data
@@ -188,7 +188,7 @@ class trainer():
         for itera, (x, y) in enumerate(dataloader['test_loader'].get_iterator()):
             testx   = data_reshaper(x, device)
             testy   = data_reshaper(y, device).transpose(1, 2)
-
+            print(testx.size(), testy.size())
             with torch.no_grad():
                 preds   = model(testx)
 
