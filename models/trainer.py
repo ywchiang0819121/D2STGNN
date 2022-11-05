@@ -187,14 +187,15 @@ class trainer():
         y_list  = []
         for itera, (x, y) in enumerate(dataloader['test_loader'].get_iterator()):
             testx   = data_reshaper(x, device)
-            testy   = data_reshaper(y, device)
+            print(testx.size())
+            testy   = data_reshaper(y, device).transpose(1, 2)
             with torch.no_grad():
                 preds   = model(testx)
             print(preds.size())
             outputs.append(preds)
             y_list.append(testy)
             # break
-        yhat    = torch.cat(outputs,dim=0)
+        yhat    = torch.cat(outputs,dim=0)[:realy.size(0),...]
         y_list  = torch.cat(y_list, dim=0)[:realy.size(0),...]
         print(yhat.size(), y_list.size())
 
