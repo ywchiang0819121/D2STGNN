@@ -212,7 +212,7 @@ class trainer():
         amape   = []
         armse   = []
 
-        print(pred.size(), real.size())
+        print(yhat.size(), realy.size())
         for i in range(12):
             # For horizon i, only calculate the metrics **at that time** slice here.
             pred    = yhat[:,:,i]
