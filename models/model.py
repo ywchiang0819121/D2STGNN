@@ -161,7 +161,7 @@ class D2STGNN(nn.Module):
         originalshape = forecast.size()
         # print(forecast.size())
         forecast = torch.reshape(forecast, (originalshape[2], originalshape[1], originalshape[0]))
-        # print(forecast.size())
+        print(forecast.size())
         forecast  = self.out_fc_4(F.relu(self.out_fc_3(forecast)))
         # forecast = torch.reshape(forecast, (3, originalshape[1], originalshape[2]))
         # print(forecast.size())
