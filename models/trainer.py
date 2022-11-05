@@ -146,7 +146,8 @@ class trainer():
             testy   = data_reshaper(y, device)
             # for dstgnn
             output  = self.model(testx)
-            output  = output.transpose(1,2)
+            print(testx.size(), testy.size(), output.size())
+            # output  = output.transpose(1,2)
             
             # scale data
             if kwargs['_max'] is not None:  # traffic flow
@@ -155,8 +156,10 @@ class trainer():
                 real_val= self.scaler(testy.transpose(1, 2).unsqueeze(-1), kwargs["_max"][0, 0, 0, 0], kwargs["_min"][0, 0, 0, 0])
             else:
                 predict = self.scaler.inverse_transform(output)
-                real_val= self.scaler.inverse_transform(testy[:,:,:,0])
+                real_val= self.scaler.inverse_transform(testy)
             
+            # print(predict.size(), real_val.size())
+
             # metrics
             loss = self.loss(predict, real_val, 0.0).item()
             mape = masked_mape(predict,real_val,0.0).item()
