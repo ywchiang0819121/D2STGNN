@@ -194,7 +194,7 @@ class trainer():
             outputs.append(preds)
             y_list.append(testy)
             # break
-        yhat    = torch.cat(outputs,dim=0)[:realy.size(0),...]
+        yhat    = torch.cat(outputs,dim=0)
         y_list  = torch.cat(y_list, dim=0)[:realy.size(0),...]
         print(yhat.size(), y_list.size())
 
