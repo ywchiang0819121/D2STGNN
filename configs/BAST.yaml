@@ -14,11 +14,11 @@ data_args:
   data_dir:       E:/MS/2021/MTGNN-master/data/BAST2WAYTIMEWEEK # data path
   adj_data_path:  E:/MS/2021/MTGNN-master/data/sensor_graph/adj_mx_bast.npz    # adj data path
   adj_type:       doubletransition                        # adj type to preprocessing
-  is_npz:         True
+  is_npz:         False
 
 # Model Args
 model_args:
-  batch_size:   1
+  batch_size:   3
   num_feat:     2
   num_hidden:   32
   node_hidden:  12
