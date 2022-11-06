@@ -154,6 +154,7 @@ def main(**kwargs):
             mtrain_mape = np.mean(train_mape)
             mtrain_rmse = np.mean(train_rmse)
 # =============================================================== Validation ================================================================= #
+            torch.cuda.empty_cache()
             time_val_start      = time.time()
             mvalid_loss, mvalid_mape, mvalid_rmse, = engine.eval(device, dataloader, model_name, _max=_max, _min=_min)
             # mvalid_loss, mvalid_mape, mvalid_rmse, = 0,0,0
@@ -168,6 +169,7 @@ def main(**kwargs):
                 print('Early stopping!')
                 break
 # =============================================================== Test ================================================================= #
+            torch.cuda.empty_cache()
             engine.test(model, save_path_resume, device, dataloader, scaler, model_name, _max=_max, _min=_min, loss=engine.loss, dataset_name=dataset_name)
 
         print("Average Training Time: {:.4f} secs/epoch".format(np.mean(train_time)))
