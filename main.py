@@ -124,6 +124,7 @@ def main(**kwargs):
 # =============================================================== Training ================================================================= #
     if mode != 'test':
         for epoch in range(resume_epoch + 1, optim_args['epochs']):
+            torch.cuda.empty_cache()
             # train a epoch
             time_train_start    = time.time()
 
