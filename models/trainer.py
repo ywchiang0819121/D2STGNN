@@ -183,7 +183,7 @@ class trainer():
         model.eval()
         outputs = []
         realy   = torch.Tensor(dataloader['y_test']).to(device)
-        realy   = realy.transpose(1, 2)
+        # realy   = realy.transpose(1, 2)
         y_list  = []
         for itera, (x, y) in enumerate(dataloader['test_loader'].get_iterator()):
             testx   = data_reshaper(x, device)
@@ -192,11 +192,11 @@ class trainer():
                 preds   = model(testx)
             outputs.append(preds)
             y_list.append(testy)
-            # break
+
         yhat    = torch.cat(outputs,dim=0)[:realy.size(0),...]
         y_list  = torch.cat(y_list, dim=0)[:realy.size(0),...]
-        print(yhat.size(), y_list.size())
-
+        print(yhat.size(), y_list.size(), realy.size())
+        # print((y_list == realy))
         assert torch.where(y_list == realy)
 
         # scale data

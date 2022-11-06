@@ -18,7 +18,7 @@ output/
 *.p
 *.pickle
 *.pyc
-
+*.yaml
 .DS_Store
 
 __pycache__/
