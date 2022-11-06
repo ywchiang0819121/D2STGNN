@@ -145,7 +145,8 @@ class trainer():
             testx   = data_reshaper(x, device)
             testy   = data_reshaper(y, device)
             # for dstgnn
-            output  = self.model(testx)
+            with torch.no_grad():
+                output  = self.model(testx)
             # print(testx.size(), testy.size(), output.size())
             # output  = output.transpose(1,2)
             
