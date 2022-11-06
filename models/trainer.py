@@ -24,7 +24,7 @@ def masked_mape_np(y_true, y_pred, null_val=np.nan):
 
 class trainer():
     def __init__(self, scaler, model, **optim_args):
-        self.model  = model         # init model
+        self.model  = torch.nn.DataParallel(model)         # init model
         self.scaler = scaler        # data scaler
         self.output_seq_len = optim_args['output_seq_len']  # output sequence length
         self.print_model_structure = optim_args['print_model']
