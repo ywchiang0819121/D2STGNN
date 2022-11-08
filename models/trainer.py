@@ -115,11 +115,11 @@ class trainer():
             mae_loss    = self.loss(predict[:, :self.cl_len, :], real_val[:, :self.cl_len, :])
         else:
             ## inverse transform for both predict and real value.
-            print(output.size(), real_val.size())
-            predict     = self.scaler.inverse_transform(output)
+            # print(output.size(), real_val.size())
+            predict     = self.scaler.inverse_transform(output.transpose(1,2))
             real_val    = self.scaler.inverse_transform(real_val)
             ## loss
-            print(predict.size(), real_val.size())
+            # print(predict.size(), real_val.size())
             mae_loss    = self.loss(predict[:, :self.cl_len, :], real_val[:, :self.cl_len, :], 0)
         loss = mae_loss
         # if kwargs['accelerator_obj'] is not None:
