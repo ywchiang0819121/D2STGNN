@@ -116,7 +116,7 @@ class trainer():
         else:
             ## inverse transform for both predict and real value.
             print(output.size(), real_val.size())
-            predict     = self.scaler.inverse_transform(output.unsqueeze(0).transpose(2,3))
+            predict     = self.scaler.inverse_transform(output)
             real_val    = self.scaler.inverse_transform(real_val)
             ## loss
             print(predict.size(), real_val.size())
