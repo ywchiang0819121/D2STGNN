@@ -26,7 +26,7 @@ def generate_graph_seq2seq_io_data(
     # y: (epoch_size, output_length, num_nodes, output_dim)
     """
     add_one_hot = False
-    num_time_slot_a_day     = 288
+    num_time_slot_a_day     = 24
     num_day_a_week          = 7
     print("warning: number of time slot in a day is set to {0}".format(num_time_slot_a_day))
     num_samples, num_nodes = df.shape

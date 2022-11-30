@@ -52,6 +52,6 @@ class DistanceFunction(nn.Module):
             Q = self.WQ(_)
             K = self.WK(_)
             QKT = torch.bmm(Q, K.transpose(-1, -2)) / math.sqrt(self.hidden_dim)
-            W = torch.softmax(QKT, dim=-1)
+            W = torch.nn.functional.gumbel_softmax(QKT, tau=1, dim=-1)
             adjacent_list.append(W)
         return adjacent_list
