@@ -7,6 +7,7 @@ from sklearn.metrics import mean_absolute_error
 
 from utils.train import data_reshaper, save_model
 from .losses import masked_mae, masked_rmse, masked_mape, metric
+import logging
 
 
 def masked_mape_np(y_true, y_pred, null_val=np.nan):
@@ -71,7 +72,7 @@ class trainer():
                     # begin curriculum learning
                     if (_ - self.warm_steps) % self.cl_steps == 0 and self.cl_len < self.output_seq_len:
                         self.cl_len += int(self.if_cl)
-            print("resume training from epoch{0}, where learn_rate={1} and curriculum learning length={2}".format(epoch_num, self.lrate, self.cl_len))
+            logging.info("resume training from epoch{0}, where learn_rate={1} and curriculum learning length={2}".format(epoch_num, self.lrate, self.cl_len))
 
     def print_model(self, **kwargs):
         if self.print_model_structure and int(kwargs['batch_num'])==0:
@@ -79,12 +80,12 @@ class trainer():
             parameter_num = 0
             for name, param in self.model.named_parameters():
                 if param.requires_grad:
-                    print(name, param.shape)
+                    logging.info(name, param.shape)
                 tmp = 1
                 for _ in param.shape:
                     tmp = tmp*_
                 parameter_num += tmp
-            print("Parameter size: {0}".format(parameter_num))
+            logging.info("Parameter size: {0}".format(parameter_num))
 
     def train(self, input, real_val, **kwargs):
         self.model.train()
@@ -103,7 +104,7 @@ class trainer():
             self.cl_len = 1
             for param_group in self.optimizer.param_groups:
                 param_group["lr"] = self.lrate
-            print("======== Start curriculum learning... reset the learning rate to {0}. ========".format(self.lrate))
+            logging.info("======== Start curriculum learning... reset the learning rate to {0}. ========".format(self.lrate))
         else:
             # begin curriculum learning
             if (kwargs['batch_num'] - self.warm_steps) % self.cl_steps == 0 and self.cl_len <= self.output_seq_len:
@@ -115,11 +116,11 @@ class trainer():
             mae_loss    = self.loss(predict[:, :self.cl_len, :], real_val[:, :self.cl_len, :])
         else:
             ## inverse transform for both predict and real value.
-            # print(output.size(), real_val.size())
+            # logging.info(output.size(), real_val.size())
             predict     = self.scaler.inverse_transform(output.transpose(1,2))
             real_val    = self.scaler.inverse_transform(real_val)
             ## loss
-            # print(predict.size(), real_val.size())
+            # logging.info(predict.size(), real_val.size())
             mae_loss    = self.loss(predict[:, :self.cl_len, :], real_val[:, :self.cl_len, :], 0)
         loss = mae_loss
         # if kwargs['accelerator_obj'] is not None:
@@ -149,7 +150,7 @@ class trainer():
             # for dstgnn
             with torch.no_grad():
                 output  = self.model(testx)
-            # print(testx.size(), testy.size(), output.size())
+            # logging.info(testx.size(), testy.size(), output.size())
             # output  = output.transpose(1,2)
             
             # scale data
@@ -161,14 +162,14 @@ class trainer():
                 predict = self.scaler.inverse_transform(output)
                 real_val= self.scaler.inverse_transform(testy)
             
-            # print(predict.size(), real_val.size())
+            # logging.info(predict.size(), real_val.size())
 
             # metrics
             loss = self.loss(predict, real_val, 0.0).item()
             mape = masked_mape(predict,real_val,0.0).item()
             rmse = masked_rmse(predict,real_val,0.0).item()
 
-            print("test: {0}".format(loss), end='\r')
+            logging.info("test: {0}".format(loss), end='\r')
 
             valid_loss.append(loss)
             valid_mape.append(mape)
@@ -198,8 +199,8 @@ class trainer():
 
         yhat    = torch.cat(outputs,dim=0)[:realy.size(0),...]
         y_list  = torch.cat(y_list, dim=0)[:realy.size(0),...]
-        print(yhat.size(), y_list.size(), realy.size())
-        # print((y_list == realy))
+        logging.info(yhat.size(), y_list.size(), realy.size())
+        # logging.info((y_list == realy))
         assert torch.where(y_list == realy)
 
         # scale data
@@ -215,7 +216,7 @@ class trainer():
         amape   = []
         armse   = []
 
-        print(yhat.size(), realy.size())
+        logging.info(yhat.size(), realy.size())
         for i in range(12):
             # For horizon i, only calculate the metrics **at that time** slice here.
             pred    = yhat[:,:,i]
@@ -226,20 +227,20 @@ class trainer():
                 rmse    = masked_rmse(pred, real, 0.0).item()
                 mape    = masked_mape(pred, real, 0.0).item()
                 log     = 'Evaluate best model on test data for horizon {:d}, Test MAE: {:.4f}, Test RMSE: {:.4f}, Test MAPE: {:.4f}'
-                print(log.format(i+1, mae, rmse, mape))
+                logging.info(log.format(i+1, mae, rmse, mape))
                 amae.append(mae)
                 amape.append(mape)
                 armse.append(rmse)
             else:       # traffic speed datasets follow the metrics released by GWNet and DCRNN.
                 metrics = metric(pred,real)
                 log     = 'Evaluate best model on test data for horizon {:d}, Test MAE: {:.4f}, Test RMSE: {:.4f}, Test MAPE: {:.4f}'
-                print(log.format(i+1, metrics[0], metrics[2], metrics[1]))
+                logging.info(log.format(i+1, metrics[0], metrics[2], metrics[1]))
                 amae.append(metrics[0])     # mae
                 amape.append(metrics[1])    # mape
                 armse.append(metrics[2])    # rmse
 
         log = '(On average over 12 horizons) Test MAE: {:.2f} | Test RMSE: {:.2f} | Test MAPE: {:.2f}% |'
-        print(log.format(np.mean(amae),np.mean(armse),np.mean(amape) * 100))
+        logging.info(log.format(np.mean(amae),np.mean(armse),np.mean(amape) * 100))
 
         if save:
             save_model(model, save_path_resume)
