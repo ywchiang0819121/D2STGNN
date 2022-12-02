@@ -27,6 +27,8 @@ def load_model(model, save_path):
     r"""
     load model parameters
     """
+    if torch.cuda.device_count() > 1:
+        model = torch.nn.parallel.DataParallel(model)
     model.load_state_dict(torch.load(save_path))
     # model = torch.load(save_path)
     return model
