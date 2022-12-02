@@ -169,7 +169,7 @@ class trainer():
             mape = masked_mape(predict,real_val,0.0).item()
             rmse = masked_rmse(predict,real_val,0.0).item()
 
-            logging.info("test: {0}".format(loss), end='\r')
+            logging.info("test: {0}".format(loss))
 
             valid_loss.append(loss)
             valid_mape.append(mape)

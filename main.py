@@ -141,7 +141,7 @@ def main(**kwargs):
                 trainy          = data_reshaper(y, device)
                 mae, mape, rmse = engine.train(trainx, trainy, batch_num=batch_num, _max=_max, _min=_min)
                 # mae, mape, rmse = 0,0,0
-                logging.info("{0}: {1}".format(itera, mae), end='\r')
+                logging.info("{0}: {1}".format(itera, mae))
                 train_loss.append(mae)
                 train_mape.append(mape)
                 train_rmse.append(rmse)
