@@ -15,6 +15,7 @@ from models.model import D2STGNN
 # from accelerate import Accelerator
 import yaml
 import setproctitle
+import logging
 
 def main(**kwargs):
     # accelerator = Accelerator()
@@ -36,8 +37,10 @@ def main(**kwargs):
     dataset_name    = config['data_args']['data_dir'].split("/")[-1]
 
     device          = torch.device(config['start_up']['device'])
-    save_path       = 'output/' + config['start_up']['model_name'] + "_" + dataset_name + ".pt"             # the best model
-    save_path_resume= 'output/' + config['start_up']['model_name'] + "_" + dataset_name + "_resume.pt"      # the resume model
+    save_path       = './output/' + config['start_up']['model_name'] + "_" + dataset_name + ".pt"             # the best model
+    save_path_resume= './output/' + config['start_up']['model_name'] + "_" + dataset_name + "_resume.pt"      # the resume model
+    save_path_logger= './output/' + config['start_up']['model_name'] + "_" + dataset_name + ".log"    
+    logging.basicConfig(filename=save_path_logger, level=logging.INFO)  
     load_pkl        = config['start_up']['load_pkl']
     model_name      = config['start_up']['model_name']
 
@@ -47,16 +50,16 @@ def main(**kwargs):
 # ========================== load dataset, adjacent matrix, node embeddings ====================== #
     if load_pkl:
         t1   = time.time()
-        dataloader  = pickle.load(open('output/dataloader_' + dataset_name + '.pkl', 'rb'))
+        dataloader  = pickle.load(open('./output/dataloader_' + dataset_name + '.pkl', 'rb'))
         t2  = time.time()
-        print("Load dataset: {:.2f}s...".format(t2-t1))
+        logging.info("Load dataset: {:.2f}s...".format(t2-t1))
     else:
         t1   = time.time()
         batch_size  = config['model_args']['batch_size']
         dataloader  = load_dataset(data_dir, batch_size, batch_size, batch_size, dataset_name)
-        pickle.dump(dataloader, open('output/dataloader_' + dataset_name + '.pkl', 'wb'))
+        pickle.dump(dataloader, open('./output/dataloader_' + dataset_name + '.pkl', 'wb'))
         t2  = time.time()
-        print("Load dataset: {:.2f}s...".format(t2-t1))
+        logging.info("Load dataset: {:.2f}s...".format(t2-t1))
     scaler          = dataloader['scaler']
     
     if dataset_name == 'PEMS04' or dataset_name == 'PEMS08' or dataset_name == 'BAST':  # traffic flow
@@ -70,7 +73,7 @@ def main(**kwargs):
     adj_mx, adj_ori = load_adj(config['data_args']['adj_data_path'], config['data_args']['adj_type'],
              is_npz=config['data_args']['is_npz'])
     t2  = time.time()
-    print("Load adjacent matrix: {:.2f}s...".format(t2-t1))
+    logging.info("Load adjacent matrix: {:.2f}s...".format(t2-t1))
 
 
 # ================================ Hyper Parameters ================================= #
@@ -103,7 +106,7 @@ def main(**kwargs):
     train_time  = []    # training time
     val_time    = []    # validate time
 
-    print("Whole trainining iteration is " + str(len(dataloader['train_loader'])))
+    logging.info("Whole trainining iteration is " + str(len(dataloader['train_loader'])))
 
     # training init: resume model & load parameters
     mode = config['start_up']['mode']
@@ -138,7 +141,7 @@ def main(**kwargs):
                 trainy          = data_reshaper(y, device)
                 mae, mape, rmse = engine.train(trainx, trainy, batch_num=batch_num, _max=_max, _min=_min)
                 # mae, mape, rmse = 0,0,0
-                print("{0}: {1}".format(itera, mae), end='\r')
+                logging.info("{0}: {1}".format(itera, mae), end='\r')
                 train_loss.append(mae)
                 train_mape.append(mape)
                 train_rmse.append(rmse)
@@ -164,17 +167,17 @@ def main(**kwargs):
 
             curr_time   = str(time.strftime("%d-%H-%M", time.localtime()))
             log = 'Current Time: ' + curr_time + ' | Epoch: {:03d} | Train_Loss: {:.4f} | Train_MAPE: {:.4f} | Train_RMSE: {:.4f} | Valid_Loss: {:.4f} | Valid_RMSE: {:.4f} | Valid_MAPE: {:.4f} | LR: {:.6f}'
-            print(log.format(epoch, mtrain_loss, mtrain_mape, mtrain_rmse, mvalid_loss, mvalid_rmse, mvalid_mape, current_learning_rate))
+            logging.info(log.format(epoch, mtrain_loss, mtrain_mape, mtrain_rmse, mvalid_loss, mvalid_rmse, mvalid_mape, current_learning_rate))
             early_stopping(mvalid_loss, engine.model)
             if early_stopping.early_stop:
-                print('Early stopping!')
+                logging.info('Early stopping!')
                 break
 # =============================================================== Test ================================================================= #
             torch.cuda.empty_cache()
             engine.test(model, save_path_resume, device, dataloader, scaler, model_name, _max=_max, _min=_min, loss=engine.loss, dataset_name=dataset_name)
 
-        print("Average Training Time: {:.4f} secs/epoch".format(np.mean(train_time)))
-        print("Average Inference Time: {:.4f} secs/epoch".format(np.mean(val_time)))
+        logging.info("Average Training Time: {:.4f} secs/epoch".format(np.mean(train_time)))
+        logging.info("Average Inference Time: {:.4f} secs/epoch".format(np.mean(val_time)))
     else:
         engine.test(model, save_path_resume, device, dataloader, scaler, model_name, save=False, _max=_max, _min=_min, loss=engine.loss, dataset_name=dataset_name)
 
@@ -182,4 +185,4 @@ if __name__ == '__main__':
     t_start = time.time()
     main()
     t_end   = time.time()
-    print("Total time spent: {0}".format(t_end - t_start))
+    logging.info("Total time spent: {0}".format(t_end - t_start))

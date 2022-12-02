@@ -1,6 +1,7 @@
 import time
 import os
 import shutil
+import logging
 
 def clock(func):
     r"""
@@ -11,7 +12,7 @@ def clock(func):
         result = func(*args, **kw)
         elapsed = time.perf_counter() - t0
         name = func.__name__
-        print('[%0.8fs] %s' % (elapsed, name))
+        logging.info('[%0.8fs] %s' % (elapsed, name))
         return result
     return clocked
 
@@ -49,12 +50,12 @@ class TrainLogger():
             # No model_para.pt
             pass
     def __print(self, dic, note=None, ban=[]):
-        print("=============== " + note + " =================")
+        logging.info("=============== " + note + " =================")
         for key,value in dic.items():
             if key in ban:
                 continue
-            print('|%20s:|%20s|' % (key, value))
-        print("--------------------------------------------")
+            logging.info('|%20s:|%20s|' % (key, value))
+        logging.info("--------------------------------------------")
 
     def print_model_args(self, model_args, ban=[]):
         self.__print(model_args, note='model args', ban=ban)

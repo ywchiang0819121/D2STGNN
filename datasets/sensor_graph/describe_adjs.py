@@ -1,4 +1,5 @@
 import pickle
+import logging
 
 def load_pickle(pickle_file):
     r"""
@@ -23,7 +24,7 @@ def load_pickle(pickle_file):
         with open(pickle_file, 'rb') as f:
             pickle_data     = pickle.load(f, encoding='latin1')
     except Exception as e:
-        print('Unable to load data ', pickle_file, ':', e)
+        logging.info('Unable to load data ', pickle_file, ':', e)
         raise
     return pickle_data
 
@@ -35,9 +36,9 @@ for i in range(adj_mx.shape[0]):
         if adj_mx[i][j] != 0:
             edge += 1
 
-print("==================== METR-LA ====================")
-print("# Node: {0}".format(adj_mx.shape[0]))
-print("# Edge: {0}".format(edge))
+logging.info("==================== METR-LA ====================")
+logging.info("# Node: {0}".format(adj_mx.shape[0]))
+logging.info("# Edge: {0}".format(edge))
 
 file_path = "datasets/sensor_graph/adj_mx_bay.pkl"
 adj_mx = load_pickle(file_path)[2]
@@ -46,9 +47,9 @@ for i in range(adj_mx.shape[0]):
     for j in range(adj_mx.shape[1]):
         if adj_mx[i][j] != 0:
             edge += 1
-print("==================== PEMS-BAY ====================")
-print("# Node: {0}".format(adj_mx.shape[0]))
-print("# Edge: {0}".format(edge))
+logging.info("==================== PEMS-BAY ====================")
+logging.info("# Node: {0}".format(adj_mx.shape[0]))
+logging.info("# Edge: {0}".format(edge))
 
 file_path = "datasets/sensor_graph/adj_mx_04.pkl"
 adj_mx = load_pickle(file_path)
@@ -57,9 +58,9 @@ for i in range(adj_mx.shape[0]):
     for j in range(adj_mx.shape[1]):
         if adj_mx[i][j] != 0:
             edge += 1
-print("==================== PEMS04 ====================")
-print("# Node: {0}".format(adj_mx.shape[0]))
-print("# Edge: {0}".format(edge))
+logging.info("==================== PEMS04 ====================")
+logging.info("# Node: {0}".format(adj_mx.shape[0]))
+logging.info("# Edge: {0}".format(edge))
 
 file_path = "datasets/sensor_graph/adj_mx_08.pkl"
 adj_mx = load_pickle(file_path)
@@ -68,8 +69,8 @@ for i in range(adj_mx.shape[0]):
     for j in range(adj_mx.shape[1]):
         if adj_mx[i][j] != 0:
             edge += 1
-print("==================== PEMS08 ====================")
-print("# Node: {0}".format(adj_mx.shape[0]))
-print("# Edge: {0}".format(edge))
+logging.info("==================== PEMS08 ====================")
+logging.info("# Node: {0}".format(adj_mx.shape[0]))
+logging.info("# Edge: {0}".format(edge))
 
 a = 1
