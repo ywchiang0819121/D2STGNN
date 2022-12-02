@@ -27,8 +27,8 @@ def load_model(model, save_path):
     r"""
     load model parameters
     """
-    # model.load_state_dict(torch.load(save_path))
-    model = torch.load(save_path)
+    model.load_state_dict(torch.load(save_path))
+    # model = torch.load(save_path)
     return model
 
 class EarlyStopping:
