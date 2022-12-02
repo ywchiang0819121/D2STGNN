@@ -6,19 +6,19 @@ start_up:
   resume_epoch: 0   # default to zero, if use the 'resume' mode, users need to set the epoch to resume.
 
   model_name:   D2STGNN                                   # model name
-  device:       cuda:0
+  device:       cuda
   load_pkl:     True                                     # load serialized dataloader
 
 # Data Processing
 data_args:
-  data_dir:       datasets/BAST2WAYTIMEWEEK # data path
-  adj_data_path:  datasets/sensor_graph/adj_mx_bast.npz    # adj data path
+  data_dir:       datasets/2021 # data path
+  adj_data_path:  datasets/sensor_graph/adj_BAST_2021.npz    # adj data path
   adj_type:       doubletransition                        # adj type to preprocessing
   is_npz:         True
 
 # Model Args
 model_args:
-  batch_size:   1
+  batch_size:   10
   num_feat:     2
   num_hidden:   32
   node_hidden:  12
