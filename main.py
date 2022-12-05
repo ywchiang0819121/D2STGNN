@@ -38,8 +38,8 @@ def main(**kwargs):
     dataset_name    = config['data_args']['data_dir'].split("/")[-1]
 
     device          = torch.device(config['start_up']['device'])
-    save_path       = './output/' + config['start_up']['model_name'] + "_" + dataset_name + ".pt"             # the best model
-    save_path_resume= './output/' + config['start_up']['model_name'] + "_" + dataset_name + "_resume.pt"      # the resume model
+    save_path       = './output/' + config['start_up']['model_name'] + "_" + dataset_name + timestr + ".pt"             # the best model
+    save_path_resume= './output/' + config['start_up']['model_name'] + "_" + dataset_name + timestr + "_resume.pt"      # the resume model
     timestr = '{0:_%Y-%m-%d__%H_%M_%S}'.format(datetime.datetime.now())
     save_path_logger= './output/' + config['start_up']['model_name'] + "_" + dataset_name + timestr + ".log"    
     logging.basicConfig(filename=save_path_logger, level=logging.INFO)  
@@ -138,16 +138,20 @@ def main(**kwargs):
             train_mape = []
             train_rmse = []
             dataloader['train_loader'].shuffle()    # traing data shuffle when starting a new epoch.
+            totaliter = 0
+            avgmae = 0.0
             for itera, (x, y) in enumerate(dataloader['train_loader'].get_iterator()):
+                totaliter += 1
                 trainx          = data_reshaper(x, device)
                 trainy          = data_reshaper(y, device)
                 mae, mape, rmse = engine.train(trainx, trainy, batch_num=batch_num, _max=_max, _min=_min)
                 # mae, mape, rmse = 0,0,0
-                logging.info("{0}: {1}".format(itera, mae))
+                avgmae += mae
                 train_loss.append(mae)
                 train_mape.append(mape)
                 train_rmse.append(rmse)
                 batch_num += 1
+            logging.info("train : {0}: {1}".format(epoch, avgmae/totaliter))
             time_train_end      = time.time()
             train_time.append(time_train_end - time_train_start)
 
