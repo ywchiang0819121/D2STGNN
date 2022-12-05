@@ -98,7 +98,7 @@ class D2STGNN(nn.Module):
         E_d = inputs['node_embedding_u']
         E_u = inputs['node_embedding_d']
         if self._model_args['sta_graph']:
-            static_graph = [F.gumbel_softmax(F.relu(torch.mm(E_d, E_u.T)), dim=1, tau=1, hard=True)]
+            static_graph = [F.gumbel_softmax(F.relu(torch.mm(E_d, E_u.T)), dim=1, tau=1, hard=False)]
         else:
             static_graph = []
         if self._model_args['dy_graph']:
