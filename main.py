@@ -38,9 +38,9 @@ def main(**kwargs):
     dataset_name    = config['data_args']['data_dir'].split("/")[-1]
 
     device          = torch.device(config['start_up']['device'])
+    timestr = '{0:_%Y-%m-%d__%H_%M_%S}'.format(datetime.datetime.now())
     save_path       = './output/' + config['start_up']['model_name'] + "_" + dataset_name + timestr + ".pt"             # the best model
     save_path_resume= './output/' + config['start_up']['model_name'] + "_" + dataset_name + timestr + "_resume.pt"      # the resume model
-    timestr = '{0:_%Y-%m-%d__%H_%M_%S}'.format(datetime.datetime.now())
     save_path_logger= './output/' + config['start_up']['model_name'] + "_" + dataset_name + timestr + ".log"    
     logging.basicConfig(filename=save_path_logger, level=logging.INFO)  
     load_pkl        = config['start_up']['load_pkl']
