@@ -144,7 +144,10 @@ class trainer():
         valid_mape = []
         valid_rmse = []
         self.model.eval()
+        totaliter = 0
+        avgmae = 0.0
         for itera, (x, y) in enumerate(dataloader['val_loader'].get_iterator()):
+            totaliter += 1
             testx   = data_reshaper(x, device)
             testy   = data_reshaper(y, device)
             # for dstgnn
@@ -168,13 +171,14 @@ class trainer():
             loss = self.loss(predict, real_val, 0.0).item()
             mape = masked_mape(predict,real_val,0.0).item()
             rmse = masked_rmse(predict,real_val,0.0).item()
+            avgmae += loss
 
-            logging.info("test: {0}".format(loss))
 
             valid_loss.append(loss)
             valid_mape.append(mape)
             valid_rmse.append(rmse)
 
+        logging.info("test: {0}".format(avgmae/totaliter))
         mvalid_loss = np.mean(valid_loss)
         mvalid_mape = np.mean(valid_mape)
         mvalid_rmse = np.mean(valid_rmse)
