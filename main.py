@@ -2,6 +2,7 @@
 # -*- encoding: utf-8 -*-
 import argparse
 import time
+import datetime
 import torch
 torch.set_num_threads(1)
 import pickle 
@@ -39,7 +40,8 @@ def main(**kwargs):
     device          = torch.device(config['start_up']['device'])
     save_path       = './output/' + config['start_up']['model_name'] + "_" + dataset_name + ".pt"             # the best model
     save_path_resume= './output/' + config['start_up']['model_name'] + "_" + dataset_name + "_resume.pt"      # the resume model
-    save_path_logger= './output/' + config['start_up']['model_name'] + "_" + dataset_name + ".log"    
+    timestr = '{0:_%Y-%m-%d__%H_%M_%S}'.format(datetime.datetime.now())
+    save_path_logger= './output/' + config['start_up']['model_name'] + "_" + dataset_name + timestr + ".log"    
     logging.basicConfig(filename=save_path_logger, level=logging.INFO)  
     load_pkl        = config['start_up']['load_pkl']
     model_name      = config['start_up']['model_name']
