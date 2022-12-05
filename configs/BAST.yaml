@@ -26,7 +26,7 @@ model_args:
   dropout:      0.1
   seq_length:   12
   k_t:          3
-  k_s:          2
+  k_s:          4 
   gap:          3
   num_modalities: 2
 
