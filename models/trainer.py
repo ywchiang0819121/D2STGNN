@@ -159,11 +159,9 @@ class trainer():
             # scale data
             if kwargs['_max'] is not None:  # traffic flow
                 ## inverse transform for both predict and real value.
-                logging.info('a')
                 predict = self.scaler(output.transpose(1,2).unsqueeze(-1), kwargs["_max"][0, 0, 0, 0], kwargs["_min"][0, 0, 0, 0])
                 real_val= self.scaler(testy.transpose(1, 2).unsqueeze(-1), kwargs["_max"][0, 0, 0, 0], kwargs["_min"][0, 0, 0, 0]).transpose(1, 2)
             else:
-                logging.info('b')
                 predict = self.scaler.inverse_transform(output)
                 real_val= self.scaler.inverse_transform(testy)
             
@@ -211,7 +209,7 @@ class trainer():
         # scale data
         if kwargs['_max'] is not None:  # traffic flow
             realy   = scaler(realy.squeeze(-1), kwargs["_max"][0, 0, 0, 0], kwargs["_min"][0, 0, 0, 0])
-            yhat    = scaler(yhat.squeeze(-1), kwargs["_max"][0, 0, 0, 0], kwargs["_min"][0, 0, 0, 0])
+            yhat    = scaler(yhat.squeeze(-1), kwargs["_max"][0, 0, 0, 0], kwargs["_min"][0, 0, 0, 0]).transpose(1, 2)
         else:
             realy   = scaler.inverse_transform(realy)
             yhat    = scaler.inverse_transform(yhat)
