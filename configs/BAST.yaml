@@ -7,7 +7,7 @@ start_up:
 
   model_name:   D2STGNN                                   # model name
   device:       cuda
-  load_pkl:     True                                     # load serialized dataloader
+  load_pkl:     False                                     # load serialized dataloader
 
 # Data Processing
 data_args:
@@ -18,7 +18,7 @@ data_args:
 
 # Model Args
 model_args:
-  batch_size:   10
+  batch_size:   10 
   num_feat:     2
   num_hidden:   32
   node_hidden:  12
@@ -26,14 +26,14 @@ model_args:
   dropout:      0.1
   seq_length:   12
   k_t:          3
-  k_s:          4 
+  k_s:          2 
   gap:          3
   num_modalities: 2
 
 # Optimization Args
 optim_args:
   # adam optimizer
-  lrate:          0.002                                   # learning rate
+  lrate:          0.01                                   # learning rate
   print_model:    False
   wdecay:         1.0e-5                                  # weight decay of adam
   eps:            1.0e-8                                  # eps of adam
@@ -50,4 +50,4 @@ optim_args:
   # procedure
   epochs:         80                                      # total epoch numbers
   patience:       20                                     # patience for earlystopping
-  seq_length:     12                                      # input & output seq length
+  seq_length:     6                                      # input & output seq length
