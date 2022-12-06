@@ -169,7 +169,6 @@ class trainer():
             
 
             # metrics
-            logging.info(str(predict.size())+str(real_val.size()))
             loss = self.loss(predict, real_val, 0.0).item()
             mape = masked_mape(predict,real_val,0.0).item()
             rmse = masked_rmse(predict,real_val,0.0).item()
@@ -227,23 +226,23 @@ class trainer():
             # For horizon i, only calculate the metrics **at that time** slice here.
             pred    = yhat[:,:,i]
             real    = realy[:,:,i]
-            if kwargs['dataset_name'] != 'METR-LA' and kwargs['dataset_name'] != 'PEMS-BAY':  
-                # traffic flow dataset follows mae metric used in ASTGNN.
-                mae     = mean_absolute_error(pred.cpu().numpy(), real.cpu().numpy())
-                rmse    = masked_rmse(pred, real, 0.0).item()
-                mape    = masked_mape(pred, real, 0.0).item()
-                log     = 'Evaluate best model on test data for horizon {:d}, Test MAE: {:.4f}, Test RMSE: {:.4f}, Test MAPE: {:.4f}'
-                logging.info(log.format(i+1, mae, rmse, mape))
-                amae.append(mae)
-                amape.append(mape)
-                armse.append(rmse)
-            else:       # traffic speed datasets follow the metrics released by GWNet and DCRNN.
-                metrics = metric(pred,real)
-                log     = 'Evaluate best model on test data for horizon {:d}, Test MAE: {:.4f}, Test RMSE: {:.4f}, Test MAPE: {:.4f}'
-                logging.info(log.format(i+1, metrics[0], metrics[2], metrics[1]))
-                amae.append(metrics[0])     # mae
-                amape.append(metrics[1])    # mape
-                armse.append(metrics[2])    # rmse
+            # if kwargs['dataset_name'] != 'METR-LA' and kwargs['dataset_name'] != 'PEMS-BAY':  
+            #     # traffic flow dataset follows mae metric used in ASTGNN.
+            #     mae     = mean_absolute_error(pred.cpu().numpy(), real.cpu().numpy())
+            #     rmse    = masked_rmse(pred, real, 0.0).item()
+            #     mape    = masked_mape(pred, real, 0.0).item()
+            #     log     = 'Evaluate best model on test data for horizon {:d}, Test MAE: {:.4f}, Test RMSE: {:.4f}, Test MAPE: {:.4f}'
+            #     logging.info(log.format(i+1, mae, rmse, mape))
+            #     amae.append(mae)
+            #     amape.append(mape)
+            #     armse.append(rmse)
+            # else:       # traffic speed datasets follow the metrics released by GWNet and DCRNN.
+            metrics = metric(pred,real)
+            log     = 'Evaluate best model on test data for horizon {:d}, Test MAE: {:.4f}, Test RMSE: {:.4f}, Test MAPE: {:.4f}'
+            logging.info(log.format(i+1, metrics[0], metrics[2], metrics[1]))
+            amae.append(metrics[0])     # mae
+            amape.append(metrics[1])    # mape
+            armse.append(metrics[2])    # rmse
 
         log = '(On average over 12 horizons) Test MAE: {:.2f} | Test RMSE: {:.2f} | Test MAPE: {:.2f}% |'
         logging.info(log.format(np.mean(amae),np.mean(armse),np.mean(amape) * 100))
