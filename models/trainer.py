@@ -203,7 +203,7 @@ class trainer():
 
         yhat    = torch.cat(outputs,dim=0)[:realy.size(0),...]
         y_list  = torch.cat(y_list, dim=0)[:realy.size(0),...]
-        logging.info(yhat.size(), y_list.size(), realy.size())
+        # logging.info(yhat.size(), y_list.size(), realy.size())
         # logging.info((y_list == realy))
         assert torch.where(y_list == realy)
 
@@ -220,7 +220,7 @@ class trainer():
         amape   = []
         armse   = []
 
-        logging.info(yhat.size(), realy.size())
+        # logging.info(yhat.size(), realy.size())
         for i in range(12):
             # For horizon i, only calculate the metrics **at that time** slice here.
             pred    = yhat[:,:,i]
