@@ -151,7 +151,7 @@ def main(**kwargs):
                 train_mape.append(mape)
                 train_rmse.append(rmse)
                 batch_num += 1
-                
+                break
             logging.info("train : {0}: {1}".format(epoch, avgmae/totaliter))
             time_train_end      = time.time()
             train_time.append(time_train_end - time_train_start)
