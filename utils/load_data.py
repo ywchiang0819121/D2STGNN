@@ -143,9 +143,9 @@ def load_dataset(data_dir, batch_size, valid_batch_size, test_batch_size, datase
         y_val = np.transpose(data_dict['y_val'], axes=[0, 2, 1, 3])
         y_test = np.transpose(data_dict['y_test'], axes=[0, 2, 1, 3])
     
-        y_train_new = re_max_min_normalization(y_train, _max[:, :, 0, :], _min[:, :, 0, :])
-        y_val_new = re_max_min_normalization(y_val, _max[:, :, 0, :], _min[:, :, 0, :])
-        y_test_new = re_max_min_normalization(y_test, _max[:, :, 0, :], _min[:, :, 0, :])
+        y_train_new = max_min_normalization(y_train, _max[:, :, 0, :], _min[:, :, 0, :])
+        y_val_new = max_min_normalization(y_val, _max[:, :, 0, :], _min[:, :, 0, :])
+        y_test_new = max_min_normalization(y_test, _max[:, :, 0, :], _min[:, :, 0, :])
         data_dict['y_train']    = np.transpose(y_train_new, axes=[0, 2, 1, 3])
         data_dict['y_val']      = np.transpose(y_val_new, axes=[0, 2, 1, 3])
         data_dict['y_test']     = np.transpose(y_test_new, axes=[0, 2, 1, 3])
