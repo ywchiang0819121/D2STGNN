@@ -225,7 +225,7 @@ class trainer():
             # For horizon i, only calculate the metrics **at that time** slice here.
             pred    = yhat[:,:,i]
             real    = realy[:,:,i]
-            if kwargs['dataset_name'] == 'PEMS04' or kwargs['dataset_name'] == 'PEMS08' or kwargs['dataset_name'] == 'BAST':  
+            if kwargs['dataset_name'] != 'METR-LA' and kwargs['dataset_name'] != 'PEMS-BAY':  
                 # traffic flow dataset follows mae metric used in ASTGNN.
                 mae     = mean_absolute_error(pred.cpu().numpy(), real.cpu().numpy())
                 rmse    = masked_rmse(pred, real, 0.0).item()
