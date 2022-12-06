@@ -164,6 +164,6 @@ class D2STGNN(nn.Module):
         forecast    = forecast.transpose(1,2).contiguous().view(forecast.shape[0], forecast.shape[2], -1)
         forecast    = forecast.unsqueeze(-1)
         forecast    = self.out_fc_4(F.relu(self.out_fc_3(forecast)))
-        forecast    = forecast.transpose(1,2)
+        # forecast    = forecast.transpose(1,2)
 
         return forecast

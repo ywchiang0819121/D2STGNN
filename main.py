@@ -64,10 +64,10 @@ def main(**kwargs):
         logging.info("Load dataset: {:.2f}s...".format(t2-t1))
     scaler          = dataloader['scaler']
     
-    try:  # traffic flow
+    if dataset_name != 'METR-LA' and dataset_name != 'PEMS-BAY':  # traffic flow
         _min = pickle.load(open("datasets/{0}/min.pkl".format(dataset_name), 'rb'))
         _max = pickle.load(open("datasets/{0}/max.pkl".format(dataset_name), 'rb'))
-    except:
+    else:
         _min = None
         _max = None
     
