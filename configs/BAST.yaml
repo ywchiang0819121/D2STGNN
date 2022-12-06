@@ -6,7 +6,7 @@ start_up:
   resume_epoch: 0   # default to zero, if use the 'resume' mode, users need to set the epoch to resume.
 
   model_name:   D2STGNN                                   # model name
-  device:       cuda
+  device:       cpu
   load_pkl:     True                                     # load serialized dataloader
 
 # Data Processing

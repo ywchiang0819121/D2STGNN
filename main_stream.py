@@ -13,22 +13,16 @@ from utils.log import TrainLogger
 from models.losses import *
 from models import trainer
 from models.model import D2STGNN
-# from accelerate import Accelerator
 import yaml
 import setproctitle
 import logging
 
 def main(**kwargs):
-    # accelerator = Accelerator()
     set_config(0)
     parser = argparse.ArgumentParser()
-    # parser.add_argument('--dataset', type=str, default='METR-LA', help='Dataset name.')
-    # parser.add_argument('--dataset', type=str, default='PEMS-BAY', help='Dataset name.')
     parser.add_argument('--dataset', type=str, default='BAST', help='Dataset name.')
-    # parser.add_argument('--dataset', type=str, default='PEMS04', help='Dataset name.')
-    # parser.add_argument('--dataset', type=str, default='PEMS08', help='Dataset name.')
+    parser.add_argument('--stream', type=int, default=0, help='Dataset name.')
     args = parser.parse_args()
-    
     config_path = "configs/" + args.dataset + ".yaml"
 
     with open(config_path) as f:
@@ -47,6 +41,9 @@ def main(**kwargs):
     model_name      = config['start_up']['model_name']
 
     model_name      = config['start_up']['model_name']
+    if args.stream:
+        begin_year      = config['start_up']['begin_year']
+        end_year        = config['start_up']['end_year']
     setproctitle.setproctitle("{0}.{1}@S22".format(model_name, dataset_name))
 
 # ========================== load dataset, adjacent matrix, node embeddings ====================== #
@@ -64,10 +61,10 @@ def main(**kwargs):
         logging.info("Load dataset: {:.2f}s...".format(t2-t1))
     scaler          = dataloader['scaler']
     
-    if dataset_name == 'PEMS04' or dataset_name == 'PEMS08' or dataset_name == 'BAST':  # traffic flow
+    try:  # traffic flow
         _min = pickle.load(open("datasets/{0}/min.pkl".format(dataset_name), 'rb'))
         _max = pickle.load(open("datasets/{0}/max.pkl".format(dataset_name), 'rb'))
-    else:
+    except:
         _min = None
         _max = None
     
@@ -126,10 +123,11 @@ def main(**kwargs):
     batch_num   = resume_epoch * len(dataloader['train_loader'])     # batch number (maybe used in schedule sampling)
 
     engine.set_resume_lr_and_cl(resume_epoch, batch_num)
-# =============================================================== Training ================================================================= #
+# =============================================================== Training ================================================================= #   
     if mode != 'test':
         for epoch in range(resume_epoch + 1, optim_args['epochs']):
-            torch.cuda.empty_cache()
+            if torch.cuda.is_initialized():
+                torch.cuda.empty_cache()
             # train a epoch
             time_train_start    = time.time()
 
@@ -151,6 +149,7 @@ def main(**kwargs):
                 train_mape.append(mape)
                 train_rmse.append(rmse)
                 batch_num += 1
+                exit()
             logging.info("train : {0}: {1}".format(epoch, avgmae/totaliter))
             time_train_end      = time.time()
             train_time.append(time_train_end - time_train_start)
@@ -164,7 +163,8 @@ def main(**kwargs):
             mtrain_mape = np.mean(train_mape)
             mtrain_rmse = np.mean(train_rmse)
 # =============================================================== Validation ================================================================= #
-            torch.cuda.empty_cache()
+            if torch.cuda.is_initialized():
+                torch.cuda.empty_cache()
             time_val_start      = time.time()
             mvalid_loss, mvalid_mape, mvalid_rmse, = engine.eval(device, dataloader, model_name, _max=_max, _min=_min)
             # mvalid_loss, mvalid_mape, mvalid_rmse, = 0,0,0
@@ -179,7 +179,8 @@ def main(**kwargs):
                 logging.info('Early stopping!')
                 break
 # =============================================================== Test ================================================================= #
-            torch.cuda.empty_cache()
+            if torch.cuda.is_initialized():
+                torch.cuda.empty_cache()
             engine.test(model, save_path_resume, device, dataloader, scaler, model_name, _max=_max, _min=_min, loss=engine.loss, dataset_name=dataset_name)
 
         logging.info("Average Training Time: {:.4f} secs/epoch".format(np.mean(train_time)))
