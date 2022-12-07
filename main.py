@@ -133,7 +133,10 @@ def main(**kwargs):
             # train a epoch
             time_train_start    = time.time()
 
-            current_learning_rate = engine.lr_scheduler.get_last_lr()[0]
+            if engine.if_lr_scheduler:
+                current_learning_rate = engine.lr_scheduler.get_last_lr()[0]
+            else:
+                current_learning_rate = engine.optimizer.param_groups[0]['lr']
             train_loss = []
             train_mape = []
             train_rmse = []
