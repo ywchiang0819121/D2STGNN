@@ -17,8 +17,34 @@ import yaml
 import setproctitle
 import logging
 
-def dataloaderEveryYears():
-    return 
+def dataloaderEveryYears(dataset_name, load_pkl, data_dir, config):
+    if load_pkl:
+        t1   = time.time()
+        dataloader  = pickle.load(open('./output/dataloader_' + dataset_name + '.pkl', 'rb'))
+        t2  = time.time()
+        logging.info("Load dataset: {:.2f}s...".format(t2-t1))
+    else:
+        t1   = time.time()
+        batch_size  = config['model_args']['batch_size']
+        dataloader  = load_dataset(data_dir, batch_size, batch_size, batch_size, dataset_name)
+        pickle.dump(dataloader, open('./output/dataloader_' + dataset_name + '.pkl', 'wb'))
+        t2  = time.time()
+        logging.info("Load dataset: {:.2f}s...".format(t2-t1))
+    scaler          = dataloader['scaler']
+    
+    if dataset_name == 'PEMS04' or dataset_name == 'PEMS08':  # traffic flow
+        _min = pickle.load(open("datasets/{0}/min.pkl".format(dataset_name), 'rb'))
+        _max = pickle.load(open("datasets/{0}/max.pkl".format(dataset_name), 'rb'))
+    else:
+        _min = None
+        _max = None
+    
+    t1   = time.time()
+    adj_mx, adj_ori = load_adj(config['data_args']['adj_data_path'], config['data_args']['adj_type'],
+             is_npz=config['data_args']['is_npz'])
+    t2  = time.time()
+    logging.info("Load adjacent matrix: {:.2f}s...".format(t2-t1))
+    return dataloader, scaler, _min, _max, adj_mx, adj_ori
 
 def main(**kwargs):
     set_config(0)
@@ -50,33 +76,9 @@ def main(**kwargs):
     setproctitle.setproctitle("{0}.{1}@S22".format(model_name, dataset_name))
 
 # ========================== load dataset, adjacent matrix, node embeddings ====================== #
-    if load_pkl:
-        t1   = time.time()
-        dataloader  = pickle.load(open('./output/dataloader_' + dataset_name + '.pkl', 'rb'))
-        t2  = time.time()
-        logging.info("Load dataset: {:.2f}s...".format(t2-t1))
-    else:
-        t1   = time.time()
-        batch_size  = config['model_args']['batch_size']
-        dataloader  = load_dataset(data_dir, batch_size, batch_size, batch_size, dataset_name)
-        pickle.dump(dataloader, open('./output/dataloader_' + dataset_name + '.pkl', 'wb'))
-        t2  = time.time()
-        logging.info("Load dataset: {:.2f}s...".format(t2-t1))
-    scaler          = dataloader['scaler']
     
-    if dataset_name != 'METR-LA' and dataset_name != 'PEMS-BAY':  # traffic flow
-        _min = pickle.load(open("datasets/{0}/min.pkl".format(dataset_name), 'rb'))
-        _max = pickle.load(open("datasets/{0}/max.pkl".format(dataset_name), 'rb'))
-    else:
-        _min = None
-        _max = None
-    
-    t1   = time.time()
-    adj_mx, adj_ori = load_adj(config['data_args']['adj_data_path'], config['data_args']['adj_type'],
-             is_npz=config['data_args']['is_npz'])
-    t2  = time.time()
-    logging.info("Load adjacent matrix: {:.2f}s...".format(t2-t1))
-
+    dataloader, scaler, _min, _max, adj_mx, adj_ori = dataloaderEveryYears(dataset_name=dataset_name, 
+                                load_pkl=load_pkl, data_dir=data_dir, config=config)
 
 # ================================ Hyper Parameters ================================= #
     # model parameters
