@@ -17,14 +17,17 @@ from models.model import D2STGNN
 import yaml
 import setproctitle
 import logging
+import os
 
+# os.environ['CUDA_VISIBLE_DEVICES']='-1'
 def main(**kwargs):
     # accelerator = Accelerator()
     set_config(0)
     parser = argparse.ArgumentParser()
     # parser.add_argument('--dataset', type=str, default='METR-LA', help='Dataset name.')
     # parser.add_argument('--dataset', type=str, default='PEMS-BAY', help='Dataset name.')
-    parser.add_argument('--dataset', type=str, default='BAST', help='Dataset name.')
+    # parser.add_argument('--dataset', type=str, default='BAST', help='Dataset name.')
+    parser.add_argument('--dataset', type=str, default='PEMS03', help='Dataset name.')
     # parser.add_argument('--dataset', type=str, default='PEMS04', help='Dataset name.')
     # parser.add_argument('--dataset', type=str, default='PEMS08', help='Dataset name.')
     args = parser.parse_args()
@@ -98,6 +101,7 @@ def main(**kwargs):
     logger.print_optim_args(optim_args)
 
     # init the model
+    # print("current", device)
     model   = D2STGNN(**model_args).to(device)
 
     # get a trainer
