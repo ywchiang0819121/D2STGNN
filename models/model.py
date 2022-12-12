@@ -64,7 +64,7 @@ class D2STGNN(nn.Module):
         self.embedding      = nn.Linear(self._in_feat, self._hidden_dim)
 
         # time embedding
-        self.T_i_D_emb  = nn.Parameter(torch.empty(24, model_args['time_emb_dim']))
+        self.T_i_D_emb  = nn.Parameter(torch.empty(288, model_args['time_emb_dim']))
         self.D_i_W_emb  = nn.Parameter(torch.empty(7, model_args['time_emb_dim']))
 
         # Decoupled Spatial Temporal Layer
@@ -113,9 +113,8 @@ class D2STGNN(nn.Module):
         node_emb_u  = self.node_emb_u  # [N, d]
         node_emb_d  = self.node_emb_d  # [N, d]
         # time slot embedding
-        time_in_day_feat = self.T_i_D_emb[(history_data[:, :, :, num_feat] * 24).type(torch.LongTensor)]    # [B, L, N, d]
+        time_in_day_feat = self.T_i_D_emb[(history_data[:, :, :, num_feat] * 288).type(torch.LongTensor)]    # [B, L, N, d]
         day_in_week_feat = self.D_i_W_emb[(history_data[:, :, :, num_feat+1]).type(torch.LongTensor)]          # [B, L, N, d]
-        # traffic signals
         history_data = history_data[:, :, :, :num_feat]
 
         return history_data, node_emb_u, node_emb_d, time_in_day_feat, day_in_week_feat
@@ -131,11 +130,14 @@ class D2STGNN(nn.Module):
         """
 
         # ==================== Prepare Input Data ==================== #
+        # print('input')
         history_data, node_embedding_u, node_embedding_d, time_in_day_feat, day_in_week_feat   = self._prepare_inputs(history_data)
-        print(history_data.size(), node_embedding_u.size(), node_embedding_d.size(), time_in_day_feat.size(), day_in_week_feat.size())
+        # print(history_data.size(), node_embedding_u.size(), node_embedding_d.size(), time_in_day_feat.size(), day_in_week_feat.size())
 
         # ========================= Construct Graphs ========================== #
-        static_graph, dynamic_graph = self._graph_constructor(node_embedding_u=node_embedding_u, node_embedding_d=node_embedding_d, history_data=history_data, time_in_day_feat=time_in_day_feat, day_in_week_feat=day_in_week_feat)
+        static_graph, dynamic_graph = self._graph_constructor(node_embedding_u=node_embedding_u, node_embedding_d=node_embedding_d, 
+                    history_data=history_data, time_in_day_feat=time_in_day_feat, day_in_week_feat=day_in_week_feat)
+        # print('static_graph', 'dynamic_graph')
         # print(torch.Tensor(dynamic_graph).size(), torch.Tensor(static_graph).size())
         # Start embedding layer
         history_data   = self.embedding(history_data)
@@ -150,7 +152,7 @@ class D2STGNN(nn.Module):
                     dynamic_graph, static_graph, node_embedding_u, node_embedding_d, time_in_day_feat, day_in_week_feat)
             dif_forecast_hidden_list.append(dif_forecast_hidden)
             inh_forecast_hidden_list.append(inh_forecast_hidden)
-            print(inh_backcast_seq_res.size(), dif_forecast_hidden.size(), inh_forecast_hidden.size()) 
+            # print(inh_backcast_seq_res.size(), dif_forecast_hidden.size(), inh_forecast_hidden.size()) 
 
         # Output Layer
         dif_forecast_hidden = sum(dif_forecast_hidden_list)

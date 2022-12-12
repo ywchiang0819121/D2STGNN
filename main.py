@@ -151,6 +151,8 @@ def main(**kwargs):
                 totaliter += 1
                 trainx          = data_reshaper(x, device)
                 trainy          = data_reshaper(y, device)
+                # print(trainx)
+                # print(trainy)
                 mae, mape, rmse = engine.train(trainx, trainy, batch_num=batch_num, _max=_max, _min=_min)
                 # mae, mape, rmse = 0,0,0
                 avgmae += mae
@@ -158,6 +160,8 @@ def main(**kwargs):
                 train_mape.append(mape)
                 train_rmse.append(rmse)
                 batch_num += 1
+                exit()
+                break
             logging.info("train : {0}: {1}".format(epoch, avgmae/totaliter))
             time_train_end      = time.time()
             train_time.append(time_train_end - time_train_start)

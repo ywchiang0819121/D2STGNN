@@ -113,20 +113,14 @@ class trainer():
         if kwargs['_max'] is not None:  # traffic flow
             predict     = self.scaler(output.transpose(1,2).unsqueeze(-1), kwargs["_max"][0, 0, 0, 0], kwargs["_min"][0, 0, 0, 0]).transpose(1, 2).squeeze(-1)
             real_val    = self.scaler(real_val.transpose(1,2).unsqueeze(-1), kwargs["_max"][0, 0, 0, 0], kwargs["_min"][0, 0, 0, 0]).transpose(1, 2).squeeze(-1)
-            
             mae_loss    = self.loss(predict[:, :self.cl_len, :], real_val[:, :self.cl_len, :])
         else:
             ## inverse transform for both predict and real value.
             # logging.info(output.size(), real_val.size())
             predict     = self.scaler.inverse_transform(output.transpose(1,2))
             real_val    = self.scaler.inverse_transform(real_val)
-            ## loss
-            # logging.info(predict.size(), real_val.size())
             mae_loss    = self.loss(predict[:, :self.cl_len, :], real_val[:, :self.cl_len, :], 0)
         loss = mae_loss
-        # if kwargs['accelerator_obj'] is not None:
-        #     kwargs['accelerator_obj'].backward(loss)
-        # else:
         loss.backward()
 
         # gradient clip and optimization
@@ -225,17 +219,6 @@ class trainer():
             # For horizon i, only calculate the metrics **at that time** slice here.
             pred    = yhat[:,:,i]
             real    = realy[:,:,i]
-            # if kwargs['dataset_name'] != 'METR-LA' and kwargs['dataset_name'] != 'PEMS-BAY':  
-            #     # traffic flow dataset follows mae metric used in ASTGNN.
-            #     mae     = mean_absolute_error(pred.cpu().numpy(), real.cpu().numpy())
-            #     rmse    = masked_rmse(pred, real, 0.0).item()
-            #     mape    = masked_mape(pred, real, 0.0).item()
-            #     log     = 'Evaluate best model on test data for horizon {:d}, Test MAE: {:.4f}, Test RMSE: {:.4f}, Test MAPE: {:.4f}'
-            #     logging.info(log.format(i+1, mae, rmse, mape))
-            #     amae.append(mae)
-            #     amape.append(mape)
-            #     armse.append(rmse)
-            # else:       # traffic speed datasets follow the metrics released by GWNet and DCRNN.
             metrics = metric(pred,real)
             log     = 'Evaluate best model on test data for horizon {:d}, Test MAE: {:.4f}, Test RMSE: {:.4f}, Test MAPE: {:.4f}'
             logging.info(log.format(i+1, metrics[0], metrics[2], metrics[1]))
