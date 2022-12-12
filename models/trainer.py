@@ -47,7 +47,7 @@ class trainer():
         self.warm_steps     = optim_args['warm_steps']
 
         # Adam optimizer
-        self.optimizer      = optim.Adam(self.model.parameters(), lr=self.lrate, weight_decay=self.wdecay, eps=self.eps)
+        self.optimizer      = optim.AdamW(self.model.parameters(), lr=self.lrate, weight_decay=self.wdecay, eps=self.eps)
         # learning rate scheduler
         self.lr_scheduler   = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=self.lr_sche_steps, gamma=self.lr_decay_ratio) if self.if_lr_scheduler else None
         

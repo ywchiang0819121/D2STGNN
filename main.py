@@ -67,7 +67,7 @@ def main(**kwargs):
         logging.info("Load dataset: {:.2f}s...".format(t2-t1))
     scaler          = dataloader['scaler']
     
-    if dataset_name == 'PEMS04' or dataset_name == 'PEMS08':  # traffic flow
+    if dataset_name == 'PEMS04' or dataset_name == 'PEMS08'or dataset_name == 'PEMS03':  # traffic flow
         _min = pickle.load(open("datasets/{0}/min.pkl".format(dataset_name), 'rb'))
         _max = pickle.load(open("datasets/{0}/max.pkl".format(dataset_name), 'rb'))
     else:

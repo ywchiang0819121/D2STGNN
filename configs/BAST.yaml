@@ -11,8 +11,8 @@ start_up:
 
 # Data Processing
 data_args:
-  data_dir:       datasets/2021 # data path
-  adj_data_path:  datasets/sensor_graph/adj_BAST_2021.npz    # adj data path
+  data_dir:       datasets/2017 # data path
+  adj_data_path:  datasets/sensor_graph/adj_BAST_2017.npz    # adj data path
   adj_type:       doubletransition                        # adj type to preprocessing
   is_npz:         True
 
@@ -33,8 +33,8 @@ model_args:
 # Optimization Args
 optim_args:
   # adam optimizer
-  lrate:          0.01                                   # learning rate
-  print_model:    False
+  lrate:          0.002                                   # learning rate
+  print_model:    False 
   wdecay:         1.0e-5                                  # weight decay of adam
   eps:            1.0e-8                                  # eps of adam
   # learning rate scheduler
@@ -48,6 +48,6 @@ optim_args:
   # warm up
   warm_epochs:    30                                      # epochs of warmming up
   # procedure
-  epochs:         80                                      # total epoch numbers
-  patience:       20                                     # patience for earlystopping
-  seq_length:     6                                      # input & output seq length
+  epochs:         100                                      # total epoch numbers
+  patience:       40                                     # patience for earlystopping
+  seq_length:     12                                      # input & output seq length
