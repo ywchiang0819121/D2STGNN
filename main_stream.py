@@ -70,16 +70,9 @@ def main(**kwargs):
     model_name      = config['start_up']['model_name']
 
     model_name      = config['start_up']['model_name']
-    if args.stream:
-        begin_year      = config['start_up']['begin_year']
-        end_year        = config['start_up']['end_year']
+    begin_year      = config['start_up']['begin_year']
+    end_year        = config['start_up']['end_year']
     setproctitle.setproctitle("{0}.{1}@S22".format(model_name, dataset_name))
-
-# ========================== load dataset, adjacent matrix, node embeddings ====================== #
-    
-    dataloader, scaler, _min, _max, adj_mx, adj_ori = dataloaderEveryYears(dataset_name=dataset_name, 
-                                load_pkl=load_pkl, data_dir=data_dir, config=config)
-
 # ================================ Hyper Parameters ================================= #
     # model parameters
     model_args  = config['model_args']
@@ -89,11 +82,8 @@ def main(**kwargs):
     model_args['adjs_ori']      = torch.tensor(adj_ori).to(device)
     model_args['dataset']       = dataset_name
 
-    # training strategy parametes
-    optim_args                  = config['optim_args']
-    optim_args['cl_steps']      = optim_args['cl_epochs'] * len(dataloader['train_loader'])
-    optim_args['warm_steps']    = optim_args['warm_epochs'] * len(dataloader['train_loader'])
-# ============================= Model and Trainer ============================= #
+    
+# ============================= Model =========================================================== #
     # log
     logger  = TrainLogger(model_name, dataset_name)
     logger.print_model_args(model_args, ban=['adjs', 'adjs_ori', 'node_emb'])
@@ -109,88 +99,98 @@ def main(**kwargs):
     # begin training:
     train_time  = []    # training time
     val_time    = []    # validate time
+# ========================== load dataset, adjacent matrix, node embeddings ====================== #
+    for i in range(begin_year, end_year+1):
+        dataloader, scaler, _min, _max, adj_mx, adj_ori = dataloaderEveryYears(dataset_name=dataset_name, 
+                                    load_pkl=load_pkl, data_dir=data_dir, config=config)
+        # training strategy parametes
+        optim_args                  = config['optim_args']
+        optim_args['cl_steps']      = optim_args['cl_epochs'] * len(dataloader['train_loader'])
+        optim_args['warm_steps']    = optim_args['warm_epochs'] * len(dataloader['train_loader'])
 
-    logging.info("Whole trainining iteration is " + str(len(dataloader['train_loader'])))
+        logging.info("Whole trainining iteration is " + str(len(dataloader['train_loader'])))
 
-    # training init: resume model & load parameters
-    mode = config['start_up']['mode']
-    assert mode in ['test', 'resume', 'scratch']
-    resume_epoch = 0
-    if mode == 'test':
-        model = load_model(model, save_path)        # resume best
-    else:
-        if mode == 'resume':
-            resume_epoch = config['start_up']['resume_epoch']
-            model = load_model(model, save_path_resume)
-        else:       # scratch
-            resume_epoch = 0
-    
-    batch_num   = resume_epoch * len(dataloader['train_loader'])     # batch number (maybe used in schedule sampling)
+# ========================== Train ============================================================== #
 
-    engine.set_resume_lr_and_cl(resume_epoch, batch_num)
+        # training init: resume model & load parameters
+        mode = config['start_up']['mode']
+        assert mode in ['test', 'resume', 'scratch']
+        resume_epoch = 0
+        if mode == 'test':
+            model = load_model(model, save_path)        # resume best
+        else:
+            if mode == 'resume':
+                resume_epoch = config['start_up']['resume_epoch']
+                model = load_model(model, save_path_resume)
+            else:       # scratch
+                resume_epoch = 0
+        
+        batch_num   = resume_epoch * len(dataloader['train_loader'])     # batch number (maybe used in schedule sampling)
+
+        engine.set_resume_lr_and_cl(resume_epoch, batch_num)
 # =============================================================== Training ================================================================= #   
-    if mode != 'test':
-        for epoch in range(resume_epoch + 1, optim_args['epochs']):
-            if torch.cuda.is_initialized():
-                torch.cuda.empty_cache()
-            # train a epoch
-            time_train_start    = time.time()
+        if mode != 'test':
+            for epoch in range(resume_epoch + 1, optim_args['epochs']):
+                if torch.cuda.is_initialized():
+                    torch.cuda.empty_cache()
+                # train a epoch
+                time_train_start    = time.time()
 
-            current_learning_rate = engine.lr_scheduler.get_last_lr()[0]
-            train_loss = []
-            train_mape = []
-            train_rmse = []
-            dataloader['train_loader'].shuffle()    # traing data shuffle when starting a new epoch.
-            totaliter = 0
-            avgmae = 0.0
-            for itera, (x, y) in enumerate(dataloader['train_loader'].get_iterator()):
-                totaliter += 1
-                trainx          = data_reshaper(x, device)
-                trainy          = data_reshaper(y, device)
-                mae, mape, rmse = engine.train(trainx, trainy, batch_num=batch_num, _max=_max, _min=_min)
-                # mae, mape, rmse = 0,0,0
-                avgmae += mae
-                train_loss.append(mae)
-                train_mape.append(mape)
-                train_rmse.append(rmse)
-                batch_num += 1
-            logging.info("train : {0}: {1}".format(epoch, avgmae/totaliter))
-            time_train_end      = time.time()
-            train_time.append(time_train_end - time_train_start)
+                current_learning_rate = engine.lr_scheduler.get_last_lr()[0]
+                train_loss = []
+                train_mape = []
+                train_rmse = []
+                dataloader['train_loader'].shuffle()    # traing data shuffle when starting a new epoch.
+                totaliter = 0
+                avgmae = 0.0
+                for itera, (x, y) in enumerate(dataloader['train_loader'].get_iterator()):
+                    totaliter += 1
+                    trainx          = data_reshaper(x, device)
+                    trainy          = data_reshaper(y, device)
+                    mae, mape, rmse = engine.train(trainx, trainy, batch_num=batch_num, _max=_max, _min=_min)
+                    # mae, mape, rmse = 0,0,0
+                    avgmae += mae
+                    train_loss.append(mae)
+                    train_mape.append(mape)
+                    train_rmse.append(rmse)
+                    batch_num += 1
+                logging.info("train : {0}: {1}".format(epoch, avgmae/totaliter))
+                time_train_end      = time.time()
+                train_time.append(time_train_end - time_train_start)
 
-            current_learning_rate = engine.optimizer.param_groups[0]['lr']
+                current_learning_rate = engine.optimizer.param_groups[0]['lr']
 
-            if engine.if_lr_scheduler:
-                engine.lr_scheduler.step()
-            # record history loss
-            mtrain_loss = np.mean(train_loss)
-            mtrain_mape = np.mean(train_mape)
-            mtrain_rmse = np.mean(train_rmse)
+                if engine.if_lr_scheduler:
+                    engine.lr_scheduler.step()
+                # record history loss
+                mtrain_loss = np.mean(train_loss)
+                mtrain_mape = np.mean(train_mape)
+                mtrain_rmse = np.mean(train_rmse)
 # =============================================================== Validation ================================================================= #
-            if torch.cuda.is_initialized():
-                torch.cuda.empty_cache()
-            time_val_start      = time.time()
-            mvalid_loss, mvalid_mape, mvalid_rmse, = engine.eval(device, dataloader, model_name, _max=_max, _min=_min)
-            # mvalid_loss, mvalid_mape, mvalid_rmse, = 0,0,0
-            time_val_end        = time.time()
-            val_time.append(time_val_end - time_val_start)
+                if torch.cuda.is_initialized():
+                    torch.cuda.empty_cache()
+                time_val_start      = time.time()
+                mvalid_loss, mvalid_mape, mvalid_rmse, = engine.eval(device, dataloader, model_name, _max=_max, _min=_min)
+                # mvalid_loss, mvalid_mape, mvalid_rmse, = 0,0,0
+                time_val_end        = time.time()
+                val_time.append(time_val_end - time_val_start)
 
-            curr_time   = str(time.strftime("%d-%H-%M", time.localtime()))
-            log = 'Current Time: ' + curr_time + ' | Epoch: {:03d} | Train_Loss: {:.4f} | Train_MAPE: {:.4f} | Train_RMSE: {:.4f} | Valid_Loss: {:.4f} | Valid_RMSE: {:.4f} | Valid_MAPE: {:.4f} | LR: {:.6f}'
-            logging.info(log.format(epoch, mtrain_loss, mtrain_mape, mtrain_rmse, mvalid_loss, mvalid_rmse, mvalid_mape, current_learning_rate))
-            early_stopping(mvalid_loss, engine.model)
-            if early_stopping.early_stop:
-                logging.info('Early stopping!')
-                break
+                curr_time   = str(time.strftime("%d-%H-%M", time.localtime()))
+                log = 'Current Time: ' + curr_time + ' | Epoch: {:03d} | Train_Loss: {:.4f} | Train_MAPE: {:.4f} | Train_RMSE: {:.4f} | Valid_Loss: {:.4f} | Valid_RMSE: {:.4f} | Valid_MAPE: {:.4f} | LR: {:.6f}'
+                logging.info(log.format(epoch, mtrain_loss, mtrain_mape, mtrain_rmse, mvalid_loss, mvalid_rmse, mvalid_mape, current_learning_rate))
+                early_stopping(mvalid_loss, engine.model)
+                if early_stopping.early_stop:
+                    logging.info('Early stopping!')
+                    break
 # =============================================================== Test ================================================================= #
-            if torch.cuda.is_initialized():
-                torch.cuda.empty_cache()
-            engine.test(model, save_path_resume, device, dataloader, scaler, model_name, _max=_max, _min=_min, loss=engine.loss, dataset_name=dataset_name)
+                if torch.cuda.is_initialized():
+                    torch.cuda.empty_cache()
+                engine.test(model, save_path_resume, device, dataloader, scaler, model_name, _max=_max, _min=_min, loss=engine.loss, dataset_name=dataset_name)
 
-        logging.info("Average Training Time: {:.4f} secs/epoch".format(np.mean(train_time)))
-        logging.info("Average Inference Time: {:.4f} secs/epoch".format(np.mean(val_time)))
-    else:
-        engine.test(model, save_path_resume, device, dataloader, scaler, model_name, save=False, _max=_max, _min=_min, loss=engine.loss, dataset_name=dataset_name)
+            logging.info("Average Training Time: {:.4f} secs/epoch".format(np.mean(train_time)))
+            logging.info("Average Inference Time: {:.4f} secs/epoch".format(np.mean(val_time)))
+        else:
+            engine.test(model, save_path_resume, device, dataloader, scaler, model_name, save=False, _max=_max, _min=_min, loss=engine.loss, dataset_name=dataset_name)
 
 if __name__ == '__main__':
     t_start = time.time()
