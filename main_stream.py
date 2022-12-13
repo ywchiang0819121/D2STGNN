@@ -28,7 +28,7 @@ def dataloaderEveryYears(dataset_name, load_pkl, data_dir, config, year, dataset
     else:
         t1   = time.time()
         batch_size  = config['model_args']['batch_size']
-        dataloader  = load_dataset(data_dir, batch_size, batch_size, batch_size, dataset_name)
+        dataloader  = load_dataset(data_dir, batch_size, batch_size*8, batch_size*8, dataset_name)
         pickle.dump(dataloader, open('./output/dataloader_' + dataset_name + '.pkl', 'wb'))
         t2  = time.time()
         logging.info("Load dataset: {:.2f}s...".format(t2-t1))
@@ -74,6 +74,7 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
             train_mape.append(mape)
             train_rmse.append(rmse)
             batch_num += 1
+            break
         logging.info("train : {0}: {1}".format(epoch, avgmae/totaliter))
         time_train_end      = time.time()
         train_time.append(time_train_end - time_train_start)
@@ -97,7 +98,7 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
         val_time.append(time_val_end - time_val_start)
 
         curr_time   = str(time.strftime("%d-%H-%M", time.localtime()))
-        log = 'Current Time: ' + curr_time + ' | Epoch: {:03d} | Train_Loss: {:.4f} | Train_MAPE: {:.4f} | Train_RMSE: {:.4f} | Valid_Loss: {:.4f} | Valid_RMSE: {:.4f} | Valid_MAPE: {:.4f} | LR: {:.6f}'
+        log = 'Current Time: ' + curr_time + ' | Epoch: {:03d} | Train_Loss: {:.4f} | Train_MAPE: {:.4f} | Train_RMSE: {:.4f}  \n | Valid_Loss: {:.4f} | Valid_RMSE: {:.4f} | Valid_MAPE: {:.4f} | LR: {:.6f}'
         logging.info(log.format(epoch, mtrain_loss, mtrain_mape, mtrain_rmse, mvalid_loss, 
                 mvalid_rmse, mvalid_mape, current_learning_rate))
         early_stopping(mvalid_loss, engine.model)
@@ -127,16 +128,17 @@ def main(**kwargs):
 
     device          = torch.device(config['start_up']['device'])
     timestr = '{0:_%Y-%m-%d__%H_%M_%S}'.format(datetime.datetime.now())
-    save_path       = './output/' + config['start_up']['model_name'] + "_" + dataset_name + timestr + ".pt"             # the best model
-    save_path_resume= './output/' + config['start_up']['model_name'] + "_" + dataset_name + timestr + "_resume.pt"      # the resume model
-    save_path_logger= './output/' + config['start_up']['model_name'] + "_" + dataset_name + timestr + ".log"    
-    logging.basicConfig(filename=save_path_logger, level=logging.INFO)  
+    # save_path       = './output/' + config['start_up']['model_name'] + "_" + dataset_name + timestr + ".pt"             # the best model
+    # save_path_resume= './output/' + config['start_up']['model_name'] + "_" + dataset_name + timestr + "_resume.pt"      # the resume model
     load_pkl        = config['start_up']['load_pkl']
     model_name      = config['start_up']['model_name']
 
     begin_year      = config['start_up']['begin_year']
     end_year        = config['start_up']['end_year']
     strategy        = config['start_up']['strategy']
+    save_path_logger= './output/' + config['start_up']['model_name'] + "_Stream_" + str(begin_year) + "_" \
+                + str(end_year) + "_" + dataset_name + timestr + ".log"    
+    logging.basicConfig(filename=save_path_logger, level=logging.INFO)  
     setproctitle.setproctitle("{0}.{1}@S22".format(model_name, dataset_name))
 # ================================ Hyper Parameters ================================= #
     # model parameters
