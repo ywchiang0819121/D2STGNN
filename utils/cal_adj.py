@@ -4,6 +4,7 @@ import scipy.sparse as sp
 import numpy as np
 from scipy.sparse import linalg
 import torch
+import logging
 
 def check_nan_inf(tensor, raise_ex=True):
     # nan
@@ -96,7 +97,7 @@ def symmetric_message_passing_adj(adj):
         Renormalized message passing adj in `GCN`.
     """
     # add self loop
-    print("calculating the renormalized message passing adj, please ensure that self-loop has added to adj.")
+    logging.info("calculating the renormalized message passing adj, please ensure that self-loop has added to adj.")
     adj         = sp.coo_matrix(adj)
     rowsum      = np.array(adj.sum(1))
     d_inv_sqrt  = np.power(rowsum, -0.5).flatten()
