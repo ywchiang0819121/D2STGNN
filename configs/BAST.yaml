@@ -2,23 +2,23 @@
 # start up
 start_up:
   # =================== running mode (select one of the three) ================== #
-  mode: scratch     # three mode: test, resume, scratch
+  mode: test     # three mode: test, resume, scratch
   resume_epoch: 0   # default to zero, if use the 'resume' mode, users need to set the epoch to resume.
 
   model_name:   D2STGNN                                   # model name
-  device:       cuda:0
-  load_pkl:     True                                     # load serialized dataloader
+  device:       cuda
+  load_pkl:     False                                     # load serialized dataloader
 
 # Data Processing
 data_args:
-  data_dir:       datasets/BAST2WAYTIMEWEEK # data path
-  adj_data_path:  datasets/sensor_graph/adj_mx_bast.npz    # adj data path
+  data_dir:       datasets/2020 # data path
+  adj_data_path:  datasets/sensor_graph/adj_BAST_2020.npz    # adj data path
   adj_type:       doubletransition                        # adj type to preprocessing
   is_npz:         True
 
 # Model Args
 model_args:
-  batch_size:   1
+  batch_size:   4
   num_feat:     2
   num_hidden:   32
   node_hidden:  12
