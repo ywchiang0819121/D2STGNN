@@ -44,7 +44,8 @@ class DifBlock(nn.Module):
                           Shape: [batch_size, seq_len', num_nodes, hidden_dim]. Kindly note that after the st conv, the sequence will be shorter.
             torch.Tensor: the output of the forecast branch, which will be used to make final prediction.
                           Shape: [batch_size, seq_len'', num_nodes, forecast_hidden_dim]. seq_len'' = future_len / gap. 
-                          In order to reduce the error accumulation in the AR forecasting strategy, we let each hidden state generate the prediction of gap points, instead of a single point.
+                          In order to reduce the error accumulation in the AR forecasting strategy,
+                          we let each hidden state generate the prediction of gap points, instead of a single point.
         """
 
         # diffusion model

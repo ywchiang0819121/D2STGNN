@@ -10,12 +10,16 @@ import pickle
 from utils.train import *
 from utils.load_data import *
 from utils.log import TrainLogger
+from models import replay
+from models import detect
 from models.losses import *
 from models import trainer
-from models.model import D2STGNN
+from models.model import D2STGNN, D2STGNN_Expansible
+from torch_geometric.utils import to_dense_batch, k_hop_subgraph
 import yaml
 import setproctitle
 import logging
+import networkx as nx
 
 # os.environ['CUDA_VISIBLE_DEVICES']='-1'
 
@@ -56,8 +60,9 @@ def dataloaderEveryYears(dataset_name, load_pkl, data_dir, config, year, dataset
     return dataloader, scaler, _min, _max, adj_mx, adj_ori
 
 def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, val_time, device,
-                model_name,  _max, _min, early_stopping, save_path_resume, scaler, dataset_name):
-    batch_num   = resume_epoch * len(dataloader['train_loader'])
+                model_name,  _max, _min, early_stopping, save_path_resume, scaler, dataset_name, args):
+    batch_num   = resume_epoch * len(dataloader['train_loader'])    
+    model = model.init
     for epoch in range(resume_epoch + 1, optim_args['epochs']):
         if torch.cuda.is_initialized():
             torch.cuda.empty_cache()
@@ -135,8 +140,6 @@ def main(**kwargs):
 
     device          = torch.device(config['start_up']['device'])
     timestr = '{0:_%Y-%m-%d__%H_%M_%S}'.format(datetime.datetime.now())
-    # save_path       = './output/' + config['start_up']['model_name'] + "_" + dataset_name + timestr + ".pt"             # the best model
-    # save_path_resume= './output/' + config['start_up']['model_name'] + "_" + dataset_name + timestr + "_resume.pt"      # the resume model
     load_pkl        = config['start_up']['load_pkl']
     model_name      = config['start_up']['model_name']
 
@@ -157,8 +160,8 @@ def main(**kwargs):
 # ============================= Model =========================================================== #
     # log
     logger  = TrainLogger(model_name, dataset_name)
-    save_path_logger= './output/' + config['start_up']['model_name'] + "_Stream_" + dataset_name + timestr + ".log"    
-
+    save_path_logger= './output/' + config['start_up']['model_name'] + "_Stream_" \
+        + dataset_name + timestr + ".log"    
     # begin training:
     train_time  = []    # training time
     val_time    = []    # validate time
@@ -170,6 +173,9 @@ def main(**kwargs):
         dataloader, scaler, _min, _max, adj_mx, adj_ori = dataloaderEveryYears(
             dataset_name=dataset_name, load_pkl=load_pkl, data_dir=data_dir_year, 
             config=config, year=str(i), dataset_type=args.dataset)
+        graph = nx.from_numpy_matrix(adj_ori)
+        vars(args)["graph_size"] = graph.number_of_nodes()
+        vars(args)["year"] = i
         # training strategy parametes
         model_args['num_nodes']     = adj_mx[0].shape[0]
         model_args['adjs']          = [torch.tensor(i).to(device) for i in adj_mx]
@@ -177,8 +183,10 @@ def main(**kwargs):
         optim_args                  = config['optim_args']
         optim_args['cl_steps']      = optim_args['cl_epochs'] * len(dataloader['train_loader'])
         optim_args['warm_steps']    = optim_args['warm_epochs'] * len(dataloader['train_loader'])
-        save_path       = './output/' + config['start_up']['model_name'] + "_Stream_" + dataset_name + ".pt"             # the best model
-        save_path_resume= './output/' + config['start_up']['model_name'] + "_Stream_" + dataset_name + "_resume.pt"      # the resume model
+        save_path       = './output/' + config['start_up']['model_name'] + "_Stream_" \
+                            + dataset_name + ".pt"             # the best model
+        save_path_resume= './output/' + config['start_up']['model_name'] + "_Stream_" \
+                            + dataset_name + "_resume.pt"      # the resume model
 
         logger.print_model_args(model_args, ban=['adjs', 'adjs_ori', 'node_emb'])
         logger.print_optim_args(optim_args)
@@ -189,10 +197,63 @@ def main(**kwargs):
                 del model
             model   = D2STGNN(**model_args).to(device)
             engine  = trainer(scaler, model, **optim_args)
-            early_stopping = EarlyStopping(optim_args['patience'], save_path)
+        if i > args.begin_year and args.strategy == "incremental":
+            vars(args)['pre_model'] = load_model(model, save_path)
+            model   = D2STGNN_Expansible(**model_args).to(device)
+            node_list = list()
+            if config['start_up']['increase']:
+                cur_node_size = np.load(
+                    config['data_args']['adj_data_path'] + str(i) + '_adj.npz')['x'].shape[0]
+                pre_node_size = np.load(
+                    config['data_args']['adj_data_path'] + str(i-1) + '_adj.npz')['x'].shape[0]
+                node_list.extend(list(range(pre_node_size, cur_node_size)))
+                
+            if config['start_up']['detect']:
+                pre_data = np.load(
+                     data_dir_year + '/' + str(i-1)+".npz")["x"]
+                cur_data = np.load(
+                     data_dir_year + '/' + str(i)+".npz")["x"]
+                pre_graph = np.array(list(nx.from_numpy_matrix(
+                    np.load(config['data_args']['adj_data_path'] + str(i-1) + '_adj.npz')["x"]).edges)).T
+                cur_graph = np.array(list(nx.from_numpy_matrix(
+                    np.load(config['data_args']['adj_data_path'] + str(i) + '_adj.npz')["x"]).edges)).T
+                vars(args)["topk"] = int(0.2*args.graph_size)
+                influence_node_list = detect.influence_node_selection(
+                    model, args, pre_data, cur_data, pre_graph, cur_graph)
+                node_list.extend(list(influence_node_list))
+            
+            if config['start_up']['replay']:
+                # int(0.2*args.graph_size)- len(node_list)
+                vars(args)["replay_num_samples"] = int(0.09*args.graph_size)
+                args.logger.info(
+                    "[*] replay node number {}".format(args.replay_num_samples))
+                replay_node_list = replay.replay_node_selection(
+                    args, dataloader, model)
+                node_list.extend(list(replay_node_list))
 
+            # Obtain subgraph of node list
+            cur_graph = np.array(list(nx.from_numpy_matrix(
+                    np.load(config['data_args']['adj_data_path'] + str(i) + '_adj.npz')["x"]).edges)).T
+            edge_list = list(nx.from_numpy_matrix(
+                np.load(config['data_args']['adj_data_path'] + str(i) + '_adj.npz')["x"]).edges)
+            graph_node_from_edge = set()
+            for (u, v) in edge_list:
+                graph_node_from_edge.add(u)
+                graph_node_from_edge.add(v)
+            node_list = list(set(node_list) & graph_node_from_edge)
+
+            if len(node_list) != 0:
+                subgraph, subgraph_edge_index, mapping, _ = k_hop_subgraph(
+                    node_list, num_hops=args.num_hops, edge_index=cur_graph, relabel_nodes=True)
+                vars(args)["subgraph"] = subgraph
+                vars(args)["subgraph_edge_index"] = subgraph_edge_index
+                vars(args)["mapping"] = mapping
+            logger.info("number of increase nodes:{}, nodes after {} hop:{}, total nodes this year {}".format
+                        (len(node_list), args.num_hops, args.subgraph.size(), args.graph_size))
+            vars(args)["node_list"] = np.asarray(node_list)
 # ========================== Train ============================================================== #       
         # training init: resume model & load parameters
+        early_stopping = EarlyStopping(optim_args['patience'], save_path)
         mode = config['start_up']['mode']
         assert mode in ['test', 'resume', 'scratch']
         resume_epoch = 0
@@ -213,7 +274,7 @@ def main(**kwargs):
             trainAYear(model=model, resume_epoch=resume_epoch, optim_args=optim_args, engine=engine,
                     dataloader=dataloader, train_time=train_time, val_time=val_time, device=device,
                 model_name=model_name,  _max=_max, _min=_min, early_stopping=early_stopping, 
-                save_path_resume=save_path_resume, scaler=scaler, dataset_name=dataset_name)
+                save_path_resume=save_path_resume, scaler=scaler, dataset_name=dataset_name, args=args)
             logging.info("Average Training Time: {:.4f} secs/epoch".format(np.mean(train_time)))
             logging.info("Average Inference Time: {:.4f} secs/epoch".format(np.mean(val_time)))
         else:
