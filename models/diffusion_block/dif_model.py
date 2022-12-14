@@ -39,7 +39,7 @@ class STLocalizedConv(nn.Module):
                 pass
             else:
                 graph = graph.unsqueeze(1)
-            H_k = torch.matmul(graph, X_k)
+            H_k = torch.matmul(graph.to(X_k.device), X_k)
             out.append(H_k)
         out = torch.cat(out, dim=-1)
         out = self.gcn_updt(out)

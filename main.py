@@ -86,9 +86,9 @@ def main(**kwargs):
     model_args  = config['model_args']
     model_args['device']        = device
     model_args['num_nodes']     = adj_mx[0].shape[0]
-    model_args['adjs']          = [torch.tensor(i).to(device) for i in adj_mx]
-    model_args['adjs_ori']      = torch.tensor(adj_ori).to(device)
     model_args['dataset']       = dataset_name
+    model_args['adjs']          = [torch.tensor(i).to(device) for i in adj_mx]
+    model_args['adjs_ori']      = torch.tensor(adj_ori).to(model_args['adjs'][0].device)
 
     # training strategy parametes
     optim_args                  = config['optim_args']
@@ -102,7 +102,7 @@ def main(**kwargs):
 
     # init the model
     # print("current", device)
-    model   = D2STGNN(**model_args).to(device)
+    model   = D2STGNN(**model_args).to(model_args['adjs_ori'].device)
 
     # get a trainer
     engine  = trainer(scaler, model, **optim_args)
