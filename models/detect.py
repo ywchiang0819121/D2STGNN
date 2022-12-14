@@ -4,7 +4,7 @@ import numpy as np
 from scipy.stats import entropy as kldiv
 from datetime import datetime
 from torch_geometric.utils import to_dense_batch 
-from src.trafficDataset import continue_learning_Dataset
+from .trafficDataset import continue_learning_Dataset
 from torch_geometric.data import Data, Batch, DataLoader
 import torch
 from scipy.spatial import distance
@@ -14,7 +14,7 @@ import os.path as osp
 
 def get_feature(data, graph, args, model, adj):
     node_size = data.shape[1]
-    data = np.reshape(data[-288*7-1:-1,:], (-1, args.x_len, node_size))
+    data = np.reshape(data[-288*7-1:-1,:], (-1, 12, node_size))
     dataloader = DataLoader(continue_learning_Dataset(data), batch_size=data.shape[0], shuffle=False, pin_memory=True, num_workers=3)
     # feature shape [T', feature_dim, N]
     for data in dataloader:

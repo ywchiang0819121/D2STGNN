@@ -20,6 +20,7 @@ import yaml
 import setproctitle
 import logging
 import networkx as nx
+import gc
 
 # os.environ['CUDA_VISIBLE_DEVICES']='-1'
 
@@ -32,6 +33,7 @@ def dataloaderEveryYears(dataset_name, load_pkl, data_dir, config, year, dataset
         except:
             batch_size  = config['model_args']['batch_size']
             dataloader  = load_dataset(data_dir, batch_size, batch_size*8, batch_size*8, dataset_name)
+            gc.collect()
             pickle.dump(dataloader, open('./output/dataloader_' + dataset_name + '_' + str(year)\
                  + '.pkl', 'wb'))
         t2  = time.time()
@@ -39,7 +41,7 @@ def dataloaderEveryYears(dataset_name, load_pkl, data_dir, config, year, dataset
     else:
         t1   = time.time()
         batch_size  = config['model_args']['batch_size']
-        dataloader  = load_dataset(data_dir, batch_size, batch_size*8, batch_size*8, dataset_name)
+        dataloader  = load_dataset(data_dir, batch_size, batch_size*4, batch_size*4, dataset_name)
         pickle.dump(dataloader, open('./output/dataloader_' + dataset_name + '_' + str(year)\
                  + '.pkl', 'wb'))
         t2  = time.time()
@@ -62,7 +64,8 @@ def dataloaderEveryYears(dataset_name, load_pkl, data_dir, config, year, dataset
 def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, val_time, device,
                 model_name,  _max, _min, early_stopping, save_path_resume, scaler, dataset_name, args):
     batch_num   = resume_epoch * len(dataloader['train_loader'])    
-    model = model.init
+    if args.cur_year > args.begin_year and args.strategy == 'incremental':
+        model = loadpremodel(model, args.pre_model)
     for epoch in range(resume_epoch + 1, optim_args['epochs']):
         if torch.cuda.is_initialized():
             torch.cuda.empty_cache()
@@ -77,6 +80,8 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
         totaliter = 0
         avgmae = 0.0
         for itera, (x, y) in enumerate(dataloader['train_loader'].get_iterator()):
+            if torch.cuda.is_initialized():
+                torch.cuda.empty_cache()
             totaliter += 1
             trainx          = data_reshaper(x, device)
             trainy          = data_reshaper(y, device)
@@ -87,6 +92,7 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
             train_mape.append(mape)
             train_rmse.append(rmse)
             batch_num += 1
+            # break
         logging.info("train : {0}: {1}".format(epoch, avgmae/totaliter))
         time_train_end      = time.time()
         train_time.append(time_train_end - time_train_start)
@@ -110,7 +116,8 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
         val_time.append(time_val_end - time_val_start)
 
         curr_time   = str(time.strftime("%d-%H-%M", time.localtime()))
-        log = 'Current Time: ' + curr_time + ' | Epoch: {:03d} | Train_Loss: {:.4f} | Train_MAPE: {:.4f} | Train_RMSE: {:.4f}  \n | Valid_Loss: {:.4f} | Valid_RMSE: {:.4f} | Valid_MAPE: {:.4f} | LR: {:.6f}'
+        log = 'Current Time: ' + curr_time + ' | Epoch: {:03d} | Train_Loss: {:.4f} | Train_MAPE: {:.4f} |\
+         Train_RMSE: {:.4f}  \n | Valid_Loss: {:.4f} | Valid_RMSE: {:.4f} | Valid_MAPE: {:.4f} | LR: {:.6f}'
         logging.info(log.format(epoch, mtrain_loss, mtrain_mape, mtrain_rmse, mvalid_loss, 
                 mvalid_rmse, mvalid_mape, current_learning_rate))
         early_stopping(mvalid_loss, engine.model)
@@ -122,7 +129,16 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
             torch.cuda.empty_cache()
         engine.test(model, save_path_resume, device, dataloader, scaler, model_name, 
             _max=_max, _min=_min, loss=engine.loss, dataset_name=dataset_name)
+        # break
 
+def loadpremodel(model, premodelpth):
+    premodel = torch.load(premodelpth)
+    with torch.no_grad():
+        for name, param in model.named_parameters():
+            if name in ['node_emb_u', 'node_emb_d']:
+                continue        
+            param.copy_(premodel['module.' + name])
+    return model
 
 def main(**kwargs):
     set_config(0)
@@ -145,7 +161,13 @@ def main(**kwargs):
 
     begin_year      = config['start_up']['begin_year']
     end_year        = config['start_up']['end_year']
-    strategy        = config['start_up']['strategy']
+    vars(args)['begin_year'] = begin_year
+    vars(args)['end_year']   = end_year
+    vars(args)['detect_strategy'] = config['start_up']['detect_strategy']
+    vars(args)['replay_strategy'] = config['start_up']['replay_strategy']
+    vars(args)['num_hops']        = config['start_up']['num_hops']
+    vars(args)['graph_path']      = config['data_args']['adj_data_path']
+    vars(args)['strategy']        = config['start_up']['strategy']
     save_path_logger= './output/' + config['start_up']['model_name'] + "_Stream_" + str(begin_year) + "_" \
                 + str(end_year) + "_" + dataset_name + timestr + ".log"    
     logging.basicConfig(filename=save_path_logger, level=logging.INFO)  
@@ -155,6 +177,7 @@ def main(**kwargs):
     model_args  = config['model_args']
     model_args['device']        = device
     model_args['dataset']       = dataset_name
+    vars(args)['device']        = device
 
     
 # ============================= Model =========================================================== #
@@ -165,8 +188,11 @@ def main(**kwargs):
     # begin training:
     train_time  = []    # training time
     val_time    = []    # validate time
+    last_save_path = ''
+    
 # ========================== load dataset, adjacent matrix, node embeddings ====================== #
     for i in range(begin_year, end_year+1):
+        vars(args)['cur_year'] = i
         if args.dataset == 'Pems3-Stream':
             data_dir_year = data_dir + '_' + str(i)
             print('current year:', data_dir_year)
@@ -184,22 +210,23 @@ def main(**kwargs):
         optim_args['cl_steps']      = optim_args['cl_epochs'] * len(dataloader['train_loader'])
         optim_args['warm_steps']    = optim_args['warm_epochs'] * len(dataloader['train_loader'])
         save_path       = './output/' + config['start_up']['model_name'] + "_Stream_" \
-                            + dataset_name + ".pt"             # the best model
+                            + str(i)+ "_" + dataset_name + ".pt"             # the best model
         save_path_resume= './output/' + config['start_up']['model_name'] + "_Stream_" \
-                            + dataset_name + "_resume.pt"      # the resume model
+                            + str(i)+ "_" + dataset_name + "_resume.pt"      # the resume model
 
         logger.print_model_args(model_args, ban=['adjs', 'adjs_ori', 'node_emb'])
         logger.print_optim_args(optim_args)
         logging.info("Whole trainining iteration is " + str(len(dataloader['train_loader'])))
-        if i == begin_year or strategy == 'retrain':
+        if i == begin_year or args.strategy == 'retrain':
             print('retrain/init model')
             if i>begin_year:
                 del model
             model   = D2STGNN(**model_args).to(device)
             engine  = trainer(scaler, model, **optim_args)
         if i > args.begin_year and args.strategy == "incremental":
-            vars(args)['pre_model'] = load_model(model, save_path)
+            vars(args)['pre_model'] = last_save_path
             model   = D2STGNN_Expansible(**model_args).to(device)
+            engine  = trainer(scaler, model, **optim_args)
             node_list = list()
             if config['start_up']['increase']:
                 cur_node_size = np.load(
@@ -210,7 +237,7 @@ def main(**kwargs):
                 
             if config['start_up']['detect']:
                 pre_data = np.load(
-                     data_dir_year + '/' + str(i-1)+".npz")["x"]
+                     data_dir + '_' + str(i-1) + '/' + str(i-1)+".npz")["x"]
                 cur_data = np.load(
                      data_dir_year + '/' + str(i)+".npz")["x"]
                 pre_graph = np.array(list(nx.from_numpy_matrix(
@@ -225,7 +252,7 @@ def main(**kwargs):
             if config['start_up']['replay']:
                 # int(0.2*args.graph_size)- len(node_list)
                 vars(args)["replay_num_samples"] = int(0.09*args.graph_size)
-                args.logger.info(
+                logging.info(
                     "[*] replay node number {}".format(args.replay_num_samples))
                 replay_node_list = replay.replay_node_selection(
                     args, dataloader, model)
@@ -244,12 +271,13 @@ def main(**kwargs):
 
             if len(node_list) != 0:
                 subgraph, subgraph_edge_index, mapping, _ = k_hop_subgraph(
-                    node_list, num_hops=args.num_hops, edge_index=cur_graph, relabel_nodes=True)
+                    node_list, num_hops=args.num_hops, edge_index=torch.LongTensor(cur_graph), 
+                    relabel_nodes=True)
                 vars(args)["subgraph"] = subgraph
                 vars(args)["subgraph_edge_index"] = subgraph_edge_index
                 vars(args)["mapping"] = mapping
-            logger.info("number of increase nodes:{}, nodes after {} hop:{}, total nodes this year {}".format
-                        (len(node_list), args.num_hops, args.subgraph.size(), args.graph_size))
+            logging.info("number of increase nodes:{}, nodes after {} hop:{}, total nodes this year {}".format
+                        (len(node_list), args.num_hops, args.subgraph.size()[0], args.graph_size))
             vars(args)["node_list"] = np.asarray(node_list)
 # ========================== Train ============================================================== #       
         # training init: resume model & load parameters
@@ -281,6 +309,7 @@ def main(**kwargs):
             engine.test(model, save_path_resume, device, dataloader, 
                 scaler, model_name, save=False, _max=_max, _min=_min, 
                 loss=engine.loss, dataset_name=dataset_name)
+        last_save_path = save_path
 
 if __name__ == '__main__':
     t_start = time.time()
