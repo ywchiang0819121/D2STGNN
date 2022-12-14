@@ -10,8 +10,8 @@ import pickle
 from utils.train import *
 from utils.load_data import *
 from utils.log import TrainLogger
-from models import replay
-from models import detect
+#from models import replay
+#from models import detect
 from models.losses import *
 from models import trainer
 from models.model import D2STGNN, D2STGNN_Expansible
@@ -62,7 +62,7 @@ def dataloaderEveryYears(dataset_name, load_pkl, data_dir, config, year, dataset
 def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, val_time, device,
                 model_name,  _max, _min, early_stopping, save_path_resume, scaler, dataset_name, args):
     batch_num   = resume_epoch * len(dataloader['train_loader'])    
-    model = model.init
+    #model = model.init
     for epoch in range(resume_epoch + 1, optim_args['epochs']):
         if torch.cuda.is_initialized():
             torch.cuda.empty_cache()
@@ -197,7 +197,7 @@ def main(**kwargs):
                 del model
             model   = D2STGNN(**model_args).to(device)
             engine  = trainer(scaler, model, **optim_args)
-        if i > args.begin_year and args.strategy == "incremental":
+        if i > begin_year and strategy == "incremental":
             vars(args)['pre_model'] = load_model(model, save_path)
             model   = D2STGNN_Expansible(**model_args).to(device)
             node_list = list()
