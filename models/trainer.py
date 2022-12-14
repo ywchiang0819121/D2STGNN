@@ -223,6 +223,7 @@ class trainer():
 
         log = '(On average over 12 horizons) Test MAE: {:.2f} | Test RMSE: {:.2f} | Test MAPE: {:.2f}% |'
         logging.info(log.format(np.mean(amae),np.mean(armse),np.mean(amape) * 100))
-
+        if torch.cuda.is_initialized():
+                torch.cuda.empty_cache()
         if save:
             save_model(model, save_path_resume)

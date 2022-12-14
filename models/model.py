@@ -87,8 +87,8 @@ class D2STGNN(nn.Module):
         # output layer
         self.out_fc_1   = nn.Linear(self._forecast_dim, self._output_hidden)
         self.out_fc_2   = nn.Linear(self._output_hidden, model_args['gap'])
-        self.out_fc_3   = nn.Linear(1, self._output_hidden)
-        self.out_fc_4   = nn.Linear(self._output_hidden, 2)
+        # self.out_fc_3   = nn.Linear(1, self._output_hidden)
+        # self.out_fc_4   = nn.Linear(self._output_hidden, 2)
 
         self.reset_parameter()
 
@@ -167,9 +167,8 @@ class D2STGNN(nn.Module):
         # regression layer
         forecast    = F.relu(self.out_fc_1(F.relu(forecast_hidden)))
         forecast    = self.out_fc_2(forecast)
-        forecast    = forecast.transpose(1,2).contiguous().view(forecast.shape[0], forecast.shape[2], 12, int(self.gap/3))
-        #forecast    = forecast.unsqueeze(-1)
-        #forecast    = self.out_fc_4(F.relu(self.out_fc_3(forecast)))
+        forecast    = forecast.transpose(1,2).contiguous()\
+                .view(forecast.shape[0], forecast.shape[2], 12, int(self.gap/3))
         forecast    = forecast.transpose(1,2)
 
         return forecast
@@ -190,6 +189,7 @@ class D2STGNN_Expansible(nn.Module):
         self._k_s           = model_args['k_s']
         self._k_t           = model_args['k_t']
         self._num_layers    = 5
+        self.gap            = model_args['gap']
 
         model_args['use_pre']   = True
         model_args['dy_graph']  = True
@@ -220,8 +220,6 @@ class D2STGNN_Expansible(nn.Module):
         # output layer
         self.out_fc_1   = nn.Linear(self._forecast_dim, self._output_hidden)
         self.out_fc_2   = nn.Linear(self._output_hidden, model_args['gap'])
-        self.out_fc_3   = nn.Linear(1, self._output_hidden)
-        self.out_fc_4   = nn.Linear(self._output_hidden, 2)
 
         self.reset_parameter()
 
@@ -230,7 +228,6 @@ class D2STGNN_Expansible(nn.Module):
         nn.init.xavier_uniform_(self.node_emb_d)
         nn.init.xavier_uniform_(self.T_i_D_emb)
         nn.init.xavier_uniform_(self.D_i_W_emb)
-    
 
     def _graph_constructor(self, **inputs):
         E_d = inputs['node_embedding_u']
@@ -300,10 +297,9 @@ class D2STGNN_Expansible(nn.Module):
         
         # regression layer
         forecast    = F.relu(self.out_fc_1(F.relu(forecast_hidden)))
-        forecast    = F.relu(self.out_fc_2(forecast))
-        forecast    = forecast.transpose(1,2).contiguous().view(forecast.shape[0], forecast.shape[2], -1)
-        forecast    = forecast.unsqueeze(-1)
-        forecast    = self.out_fc_4(F.relu(self.out_fc_3(forecast)))
+        forecast    = self.out_fc_2(forecast)
+        forecast    = forecast.transpose(1,2).contiguous()\
+                .view(forecast.shape[0], forecast.shape[2], 12, int(self.gap/3))
         forecast    = forecast.transpose(1,2)
 
         return forecast
