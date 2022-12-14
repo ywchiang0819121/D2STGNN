@@ -166,7 +166,7 @@ class D2STGNN(nn.Module):
         
         # regression layer
         forecast    = F.relu(self.out_fc_1(F.relu(forecast_hidden)))
-        forecast    = F.relu(self.out_fc_2(forecast))
+        forecast    = self.out_fc_2(forecast)
         forecast    = forecast.transpose(1,2).contiguous().view(forecast.shape[0], forecast.shape[2], 12, int(self.gap/3))
         #forecast    = forecast.unsqueeze(-1)
         #forecast    = self.out_fc_4(F.relu(self.out_fc_3(forecast)))
