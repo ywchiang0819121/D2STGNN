@@ -13,7 +13,7 @@ class Forecast(nn.Module):
         [batch_size, _, num_nodes, num_feat]    = X.shape
 
         predict = [Z[-1, :, :].unsqueeze(0)]
-        for _ in range(int(self.output_seq_len / self.model_args[''])-1):
+        for _ in range(int(self.output_seq_len / self.model_args['gap'])-1):
             # RNN
             _gru    = rnn_layer.gru_cell(predict[-1][0], RNN_H[-1]).unsqueeze(0)
             RNN_H   = torch.cat([RNN_H, _gru], dim=0)
