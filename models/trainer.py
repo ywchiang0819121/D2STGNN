@@ -155,7 +155,7 @@ class trainer():
             if kwargs['_max'] is not None:  # traffic flow
                 ## inverse transform for both predict and real value.
                 predict = self.scaler(output.transpose(1,2).unsqueeze(-1), kwargs["_max"][0, 0, 0, 0], 
-                            kwargs["_min"][0, 0, 0, 0])
+                            kwargs["_min"][0, 0, 0, 0]).transpose(1, 2)
                 real_val= self.scaler(testy.transpose(1, 2).unsqueeze(-1), kwargs["_max"][0, 0, 0, 0], 
                             kwargs["_min"][0, 0, 0, 0]).transpose(1, 2)
             else:
