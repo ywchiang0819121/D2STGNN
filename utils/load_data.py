@@ -135,8 +135,8 @@ def load_dataset(data_dir, batch_size, valid_batch_size, test_batch_size, datase
         data_dict['x_' + mode]  = _['x']
         data_dict['y_' + mode]  = _['y']
     if dataset_name == 'PEMS04' or dataset_name == 'PEMS08' or dataset_name=='BAST':    # traffic flow
-        _min = pickle.load(open("./datasets/" + dataset_name + '_' + year + "/min.pkl", 'rb'))
-        _max = pickle.load(open("./datasets/" + dataset_name + '_' + year + "/max.pkl", 'rb'))
+        _min = pickle.load(open(data_dir + "/min.pkl", 'rb'))
+        _max = pickle.load(open(data_dir + "/max.pkl", 'rb'))
 
         # normalization
         y_train = np.transpose(data_dict['y_train'], axes=[0, 2, 1, 3])
