@@ -170,7 +170,7 @@ def load_dataset(data_dir, batch_size, valid_batch_size, test_batch_size, datase
         data_dict['scaler']         = scaler
     return data_dict
 
-def load_adj(file_path, adj_type, is_npz):
+def load_adj(file_path, adj_type, is_npz, is_arr=False):
     r"""
     Description:
     -----------
@@ -189,6 +189,8 @@ def load_adj(file_path, adj_type, is_npz):
     """
     if is_npz:
         adj_mx = np.load(file_path)['x']
+    elif is_arr:
+        adj_mx = file_path
     else:
         try:
             # METR and PEMS_BAY
