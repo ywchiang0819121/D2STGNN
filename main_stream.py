@@ -32,8 +32,8 @@ def dataloaderEveryYears(dataset_name, load_pkl, data_dir, config, year, dataset
                  + '.pkl', 'rb'))
         except:
             batch_size  = config['model_args']['batch_size']
-            dataloader  = load_dataset(data_dir, batch_size, batch_size*8, 
-                    batch_size*8, dataset_name)
+            dataloader  = load_dataset(data_dir, batch_size, batch_size*4, 
+                    batch_size*4, dataset_name, year=str(year))
             gc.collect()
             pickle.dump(dataloader, open('./output/dataloader_' + dataset_name + '_' + str(year)\
                  + '.pkl', 'wb'))
@@ -42,7 +42,8 @@ def dataloaderEveryYears(dataset_name, load_pkl, data_dir, config, year, dataset
     else:
         t1   = time.time()
         batch_size  = config['model_args']['batch_size']
-        dataloader  = load_dataset(data_dir, batch_size, batch_size*4, batch_size*4, dataset_name)
+        dataloader  = load_dataset(data_dir, batch_size, batch_size*4, 
+                    batch_size*4, dataset_name, year=str(year))
         pickle.dump(dataloader, open('./output/dataloader_' + dataset_name + '_' + str(year)\
                  + '.pkl', 'wb'))
         t2  = time.time()
