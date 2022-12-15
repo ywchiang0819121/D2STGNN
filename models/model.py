@@ -117,7 +117,8 @@ class D2STGNN(nn.Module):
         node_emb_u  = self.node_emb_u  # [N, d]
         node_emb_d  = self.node_emb_d  # [N, d]
         # time slot embedding
-        time_in_day_feat = self.T_i_D_emb[(history_data[:, :, :, num_feat] * 288 - 1).type(torch.LongTensor)]    # [B, L, N, d]
+        time_in_day_feat = self.T_i_D_emb[(history_data[:, :, :, num_feat] * model_args['time_in_day']
+                             - 1).type(torch.LongTensor)]    # [B, L, N, d]
         day_in_week_feat = self.D_i_W_emb[(history_data[:, :, :, num_feat+1]).type(torch.LongTensor)]          # [B, L, N, d]
         history_data = history_data[:, :, :, :num_feat]
 
@@ -248,7 +249,8 @@ class D2STGNN_Expansible(nn.Module):
         node_emb_u  = self.node_emb_u  # [N, d]
         node_emb_d  = self.node_emb_d  # [N, d]
         # time slot embedding
-        time_in_day_feat = self.T_i_D_emb[(history_data[:, :, :, num_feat] * 288 - 1).type(torch.LongTensor)]    # [B, L, N, d]
+        time_in_day_feat = self.T_i_D_emb[(history_data[:, :, :, num_feat] * model_args['time_in_day']
+                         - 1).type(torch.LongTensor)]    # [B, L, N, d]
         day_in_week_feat = self.D_i_W_emb[(history_data[:, :, :, num_feat+1]).type(torch.LongTensor)]          # [B, L, N, d]
         history_data = history_data[:, :, :, :num_feat]
 
