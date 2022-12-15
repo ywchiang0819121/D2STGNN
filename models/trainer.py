@@ -174,7 +174,7 @@ class trainer():
             valid_mape.append(mape)
             valid_rmse.append(rmse)
 
-        logging.info("test: {0}".format(avgmae/totaliter))
+        logging.info("val: {0}".format(avgmae/totaliter))
         mvalid_loss = np.mean(valid_loss)
         mvalid_mape = np.mean(valid_mape)
         mvalid_rmse = np.mean(valid_rmse)
@@ -184,6 +184,8 @@ class trainer():
     @staticmethod
     def test(model, save_path_resume, device, dataloader, scaler, model_name, save=True, **kwargs):
         # test
+        if torch.cuda.is_initialized():
+                torch.cuda.empty_cache()
         model.eval()
         outputs = []
         realy   = torch.Tensor(dataloader['y_test']).to(device)
