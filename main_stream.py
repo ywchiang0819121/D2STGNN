@@ -32,7 +32,8 @@ def dataloaderEveryYears(dataset_name, load_pkl, data_dir, config, year, dataset
                  + '.pkl', 'rb'))
         except:
             batch_size  = config['model_args']['batch_size']
-            dataloader  = load_dataset(data_dir, batch_size, batch_size*8, batch_size*8, dataset_name)
+            dataloader  = load_dataset(data_dir, batch_size, batch_size*8, 
+                    batch_size*8, dataset_name)
             gc.collect()
             pickle.dump(dataloader, open('./output/dataloader_' + dataset_name + '_' + str(year)\
                  + '.pkl', 'wb'))
@@ -48,8 +49,12 @@ def dataloaderEveryYears(dataset_name, load_pkl, data_dir, config, year, dataset
         logging.info("Load dataset: {:.2f}s...".format(t2-t1))
     scaler          = dataloader['scaler']
     
-    _min = None
-    _max = None
+    if dataset_name == 'PEMS04' or dataset_name == 'PEMS08' or dataset_name == 'BAST':  # traffic flow
+        _min = pickle.load(open("datasets/{0}/min.pkl".format(dataset_name), 'rb'))
+        _max = pickle.load(open("datasets/{0}/max.pkl".format(dataset_name), 'rb'))
+    else:
+        _min = None
+        _max = None
     
     t1   = time.time()
     if dataset_type == "Pems3-Stream":
