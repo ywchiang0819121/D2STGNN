@@ -51,6 +51,7 @@ class D2STGNN(nn.Module):
         self._forecast_dim  = 256
         self._output_hidden = 512
         self._output_dim    = model_args['seq_length']
+        self._out_feat      = model_args['out_feat']
 
         self._num_nodes     = model_args['num_nodes']
         self._k_s           = model_args['k_s']
@@ -73,7 +74,8 @@ class D2STGNN(nn.Module):
         self.D_i_W_emb  = nn.Parameter(torch.empty(7, model_args['time_emb_dim']))
 
         # Decoupled Spatial Temporal Layer
-        self.layers = nn.ModuleList([DecoupleLayer(self._hidden_dim, fk_dim=self._forecast_dim, **model_args)])
+        self.layers = nn.ModuleList([DecoupleLayer(self._hidden_dim, fk_dim=self._forecast_dim,
+                 **model_args)])
         for _ in range(self._num_layers - 1):
             self.layers.append(DecoupleLayer(self._hidden_dim, fk_dim=self._forecast_dim, **model_args))
 
@@ -87,7 +89,7 @@ class D2STGNN(nn.Module):
 
         # output layer
         self.out_fc_1   = nn.Linear(self._forecast_dim, self._output_hidden)
-        self.out_fc_2   = nn.Linear(self._output_hidden, model_args['gap'])
+        self.out_fc_2   = nn.Linear(self._output_hidden, model_args['gap'] * model_args['out_feat'])
 
 
         self.reset_parameter()
@@ -117,8 +119,8 @@ class D2STGNN(nn.Module):
         node_emb_u  = self.node_emb_u  # [N, d]
         node_emb_d  = self.node_emb_d  # [N, d]
         # time slot embedding
-        time_in_day_feat = self.T_i_D_emb[(history_data[:, :, :, num_feat] * model_args['time_in_day']
-                             - 1).type(torch.LongTensor)]    # [B, L, N, d]
+        time_in_day_feat = self.T_i_D_emb[(history_data[:, :, :, num_feat] * 
+                            self._model_args['time_in_day']- 1).type(torch.LongTensor)]    # [B, L, N, d]
         day_in_week_feat = self.D_i_W_emb[(history_data[:, :, :, num_feat+1]).type(torch.LongTensor)]          # [B, L, N, d]
         history_data = history_data[:, :, :, :num_feat]
 
@@ -169,7 +171,7 @@ class D2STGNN(nn.Module):
         forecast    = F.relu(self.out_fc_1(F.relu(forecast_hidden)))
         forecast    = self.out_fc_2(forecast)
         forecast    = forecast.transpose(1,2).contiguous()\
-                .view(forecast.shape[0], forecast.shape[2], 12, int(self.gap/3))
+                .view(forecast.shape[0], forecast.shape[2], 12, self._out_feat)
         forecast    = forecast.transpose(1,2)
 
         return forecast
@@ -185,6 +187,7 @@ class D2STGNN_Expansible(nn.Module):
         self._forecast_dim  = 256
         self._output_hidden = 512
         self._output_dim    = model_args['seq_length']
+        self._out_feat      = model_args['out_feat']
 
         self._num_nodes     = model_args['num_nodes']
         self._k_s           = model_args['k_s']
@@ -220,7 +223,7 @@ class D2STGNN_Expansible(nn.Module):
 
         # output layer
         self.out_fc_1   = nn.Linear(self._forecast_dim, self._output_hidden)
-        self.out_fc_2   = nn.Linear(self._output_hidden, model_args['gap'])
+        self.out_fc_2   = nn.Linear(self._output_hidden, model_args['gap'] * self._out_feat)
 
         self.reset_parameter()
 
@@ -249,8 +252,8 @@ class D2STGNN_Expansible(nn.Module):
         node_emb_u  = self.node_emb_u  # [N, d]
         node_emb_d  = self.node_emb_d  # [N, d]
         # time slot embedding
-        time_in_day_feat = self.T_i_D_emb[(history_data[:, :, :, num_feat] * model_args['time_in_day']
-                         - 1).type(torch.LongTensor)]    # [B, L, N, d]
+        time_in_day_feat = self.T_i_D_emb[(history_data[:, :, :, num_feat] * 
+                        self.model_args['time_in_day'] - 1).type(torch.LongTensor)]    # [B, L, N, d]
         day_in_week_feat = self.D_i_W_emb[(history_data[:, :, :, num_feat+1]).type(torch.LongTensor)]          # [B, L, N, d]
         history_data = history_data[:, :, :, :num_feat]
 
@@ -303,7 +306,7 @@ class D2STGNN_Expansible(nn.Module):
         forecast    = F.relu(self.out_fc_1(F.relu(forecast_hidden)))
         forecast    = self.out_fc_2(forecast)
         forecast    = forecast.transpose(1,2).contiguous()\
-                .view(forecast.shape[0], forecast.shape[2], 12, int(self.gap/3))
+                .view(forecast.shape[0], forecast.shape[2], 12, self._out_feat)
         forecast    = forecast.transpose(1,2)
 
         return forecast

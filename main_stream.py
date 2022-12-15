@@ -10,8 +10,8 @@ import pickle
 from utils.train import *
 from utils.load_data import *
 from utils.log import TrainLogger
-#from models import replay
-#from models import detect
+from models import replay
+from models import detect
 from models.losses import *
 from models import trainer
 from models.model import D2STGNN, D2STGNN_Expansible
@@ -92,6 +92,7 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
             trainy          = data_reshaper(y, device)
             mae, mape, rmse = engine.train(trainx, trainy, batch_num=batch_num, _max=_max, _min=_min)
             # mae, mape, rmse = 0,0,0
+            print("train : {0}: {1}\r".format(itera, mae))
             avgmae += mae
             train_loss.append(mae)
             train_mape.append(mape)
@@ -148,7 +149,7 @@ def loadpremodel(model, premodelpth):
 def main(**kwargs):
     set_config(0)
     parser = argparse.ArgumentParser()
-    #parser.add_argument('--dataset', type=str, default='Pems3-Stream', help='Dataset name.')
+    # parser.add_argument('--dataset', type=str, default='Pems3-Stream', help='Dataset name.')
     parser.add_argument('--dataset', type=str, default='BAST-Stream', help='Dataset name.')
     parser.add_argument('--stream', type=int, default=0, help='Dataset name.')
     args = parser.parse_args()
