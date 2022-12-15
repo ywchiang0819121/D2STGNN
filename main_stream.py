@@ -57,6 +57,11 @@ def dataloaderEveryYears(dataset_name, load_pkl, data_dir, config, year, dataset
             config['data_args']['adj_data_path'] + year + '_adj.npz', 
             config['data_args']['adj_type'],
             is_npz=config['data_args']['is_npz'])
+    elif dataset_type == 'BAST-Stream':
+        adj_mx, adj_ori = load_adj(
+            config['data_args']['adj_data_path'] + 'adj_BAST_' + year + '.npz', 
+            config['data_args']['adj_type'],
+            is_npz=config['data_args']['is_npz'])
     t2  = time.time()
     logging.info("Load adjacent matrix: {:.2f}s...".format(t2-t1))
     return dataloader, scaler, _min, _max, adj_mx, adj_ori
@@ -143,7 +148,8 @@ def loadpremodel(model, premodelpth):
 def main(**kwargs):
     set_config(0)
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='Pems3-Stream', help='Dataset name.')
+    #parser.add_argument('--dataset', type=str, default='Pems3-Stream', help='Dataset name.')
+    parser.add_argument('--dataset', type=str, default='BAST-Stream', help='Dataset name.')
     parser.add_argument('--stream', type=int, default=0, help='Dataset name.')
     args = parser.parse_args()
     config_path = "configs/" + args.dataset + ".yaml"
@@ -193,7 +199,7 @@ def main(**kwargs):
 # ========================== load dataset, adjacent matrix, node embeddings ====================== #
     for i in range(begin_year, end_year+1):
         vars(args)['cur_year'] = i
-        if args.dataset == 'Pems3-Stream':
+        if args.dataset == 'Pems3-Stream' or args.dataset == 'BAST-Stream':
             data_dir_year = data_dir + '_' + str(i)
             print('current year:', data_dir_year)
         dataloader, scaler, _min, _max, adj_mx, adj_ori = dataloaderEveryYears(
