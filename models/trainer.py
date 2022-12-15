@@ -112,7 +112,7 @@ class trainer():
         # scale data and calculate loss
         if kwargs['_max'] is not None:  # traffic flow
             predict     = self.scaler(output.transpose(1,2).unsqueeze(-1), kwargs["_max"][0, 0, 0, 0], 
-                    kwargs["_min"][0, 0, 0, 0]).transpose(1, 2).squeeze(-1)
+                    kwargs["_min"][0, 0, 0, 0]).squeeze(-1)
             real_val    = self.scaler(real_val.transpose(1,2).unsqueeze(-1), kwargs["_max"][0, 0, 0, 0], 
                     kwargs["_min"][0, 0, 0, 0]).transpose(1, 2).squeeze(-1)
             mae_loss    = self.loss(predict[:, :self.cl_len, ...], real_val[:, :self.cl_len, ...])
