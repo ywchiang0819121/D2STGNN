@@ -80,7 +80,7 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
         totaliter = 0
         avgmae = 0.0
         for itera, (x, y) in enumerate(dataloader['train_loader'].get_iterator()):
-            if torch.cuda.is_initialized():
+            if torch.cuda.is_initialized() and itera%10 == 0:
                 torch.cuda.empty_cache()
             totaliter += 1
             trainx          = data_reshaper(x, device)
@@ -225,8 +225,6 @@ def main(**kwargs):
             engine  = trainer(scaler, model, **optim_args)
         if i > args.begin_year and args.strategy == "incremental":
             vars(args)['pre_model'] = last_save_path
-            model   = D2STGNN_Expansible(**model_args).to(device)
-            engine  = trainer(scaler, model, **optim_args)
             node_list = list()
             if config['start_up']['increase']:
                 cur_node_size = np.load(
@@ -279,6 +277,18 @@ def main(**kwargs):
             logging.info("number of increase nodes:{}, nodes after {} hop:{}, total nodes this year {}".format
                         (len(node_list), args.num_hops, args.subgraph.size()[0], args.graph_size))
             vars(args)["node_list"] = np.asarray(node_list)
+            model   = D2STGNN_Expansible(**model_args)
+            graph = nx.Graph()
+            graph.add_nodes_from(range(args.subgraph.size(0)))
+            graph.add_edges_from(args.subgraph_edge_index.numpy().T)
+            adj = nx.to_numpy_array(graph)
+            adj_mx, adj_ori = load_adj(adj, config['data_args']['adj_type'],
+                                is_npz=False, is_arr=True)
+            model_args['num_nodes']     = adj_mx[0].shape[0]
+            model_args['adjs']          = [torch.tensor(i).to(device) for i in adj_mx]
+            model_args['adjs_ori']      = torch.tensor(adj_ori).to(device)
+            sur_model = D2STGNN_Expansible(**model_args).to(device)
+            engine  = trainer(scaler, model, **optim_args)
 # ========================== Train ============================================================== #       
         # training init: resume model & load parameters
         early_stopping = EarlyStopping(optim_args['patience'], save_path)
@@ -299,6 +309,7 @@ def main(**kwargs):
         engine.set_resume_lr_and_cl(resume_epoch, batch_num)
 # =============================================================== Training ================================================================= #   
         if mode != 'test':
+            # continue
             trainAYear(model=model, resume_epoch=resume_epoch, optim_args=optim_args, engine=engine,
                     dataloader=dataloader, train_time=train_time, val_time=val_time, device=device,
                 model_name=model_name,  _max=_max, _min=_min, early_stopping=early_stopping, 

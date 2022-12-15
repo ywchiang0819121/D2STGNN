@@ -56,6 +56,8 @@ class D2STGNN(nn.Module):
         self._k_s           = model_args['k_s']
         self._k_t           = model_args['k_t']
         self._num_layers    = 5
+        self.gap = model_args['gap'] 
+        self.time_in_day    = model_args['time_in_day']
 
         model_args['use_pre']   = True
         model_args['dy_graph']  = True
@@ -67,7 +69,7 @@ class D2STGNN(nn.Module):
         self.embedding      = nn.Linear(self._in_feat, self._hidden_dim)
 
         # time embedding
-        self.T_i_D_emb  = nn.Parameter(torch.empty(288, model_args['time_emb_dim']))
+        self.T_i_D_emb  = nn.Parameter(torch.empty(model_args['time_in_day'], model_args['time_emb_dim']))
         self.D_i_W_emb  = nn.Parameter(torch.empty(7, model_args['time_emb_dim']))
 
         # Decoupled Spatial Temporal Layer
@@ -82,13 +84,11 @@ class D2STGNN(nn.Module):
         # node embeddings
         self.node_emb_u = nn.Parameter(torch.empty(self._num_nodes, self._node_dim))
         self.node_emb_d = nn.Parameter(torch.empty(self._num_nodes, self._node_dim))
-        self.gap = model_args['gap']
 
         # output layer
         self.out_fc_1   = nn.Linear(self._forecast_dim, self._output_hidden)
         self.out_fc_2   = nn.Linear(self._output_hidden, model_args['gap'])
-        # self.out_fc_3   = nn.Linear(1, self._output_hidden)
-        # self.out_fc_4   = nn.Linear(self._output_hidden, 2)
+
 
         self.reset_parameter()
 
@@ -201,7 +201,7 @@ class D2STGNN_Expansible(nn.Module):
         self.embedding      = nn.Linear(self._in_feat, self._hidden_dim)
 
         # time embedding
-        self.T_i_D_emb  = nn.Parameter(torch.empty(288, model_args['time_emb_dim']))
+        self.T_i_D_emb  = nn.Parameter(torch.empty(model_args['time_in_day'], model_args['time_emb_dim']))
         self.D_i_W_emb  = nn.Parameter(torch.empty(7, model_args['time_emb_dim']))
 
         # Decoupled Spatial Temporal Layer
@@ -266,12 +266,14 @@ class D2STGNN_Expansible(nn.Module):
 
         # ==================== Prepare Input Data ==================== #
         # print('input')
-        history_data, node_embedding_u, node_embedding_d, time_in_day_feat, day_in_week_feat   = self._prepare_inputs(history_data)
+        history_data, node_embedding_u, node_embedding_d, time_in_day_feat, day_in_week_feat   = \
+                self._prepare_inputs(history_data)
         # print(history_data.size(), node_embedding_u.size(), node_embedding_d.size(), time_in_day_feat.size(), day_in_week_feat.size())
 
         # ========================= Construct Graphs ========================== #
-        static_graph, dynamic_graph = self._graph_constructor(node_embedding_u=node_embedding_u, node_embedding_d=node_embedding_d, 
-                    history_data=history_data, time_in_day_feat=time_in_day_feat, day_in_week_feat=day_in_week_feat)
+        static_graph, dynamic_graph = self._graph_constructor(node_embedding_u=node_embedding_u,   \
+                    node_embedding_d=node_embedding_d, history_data=history_data, \
+                    time_in_day_feat=time_in_day_feat, day_in_week_feat=day_in_week_feat)
         # print('static_graph', 'dynamic_graph')
         # print(torch.Tensor(dynamic_graph).size(), torch.Tensor(static_graph).size())
         # Start embedding layer
