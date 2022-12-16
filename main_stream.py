@@ -232,6 +232,8 @@ def main(**kwargs):
         logging.info("Whole trainining iteration is " + str(len(dataloader['train_loader'])))
         if i == begin_year or args.strategy == 'retrain':
             print('retrain/init model')
+            if torch.cuda.is_initialized():
+                torch.cuda.empty_cache()
             if i>begin_year:
                 del model
             model   = D2STGNN(**model_args).to(device)
