@@ -143,10 +143,15 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
             _max=_max, _min=_min, loss=engine.loss, dataset_name=dataset_name)
         # break
 
-def loadpremodel(model, premodelpth):
+def loadpremodel(model, premodelpth, full_model=None):
     premodel = torch.load(premodelpth)
     with torch.no_grad():
         for name, param in model.named_parameters():
+            if name in ['node_emb_u', 'node_emb_d']:
+                continue        
+            param.copy_(premodel['module.' + name])
+    if full_model != None:
+        for name, param in full_model.named_parameters():
             if name in ['node_emb_u', 'node_emb_d']:
                 continue        
             param.copy_(premodel['module.' + name])
@@ -242,25 +247,45 @@ def main(**kwargs):
             vars(args)['pre_model'] = last_save_path
             node_list = list()
             if config['start_up']['increase']:
-                cur_node_size = np.load(
-                    config['data_args']['adj_data_path'] + str(i) + '_adj.npz')['x'].shape[0]
-                pre_node_size = np.load(
-                    config['data_args']['adj_data_path'] + str(i-1) + '_adj.npz')['x'].shape[0]
-                node_list.extend(list(range(pre_node_size, cur_node_size)))
+                if args.dataset == 'BAST-Stream':
+                    alivedict = pickle.load(open('datasets/sensor_graph/alives.pkl','rb'))
+                    alive_cur = alivedict[str(i)]
+                    alive_pre = alivedict[str(i-1)]
+                    increased = [alive_cur.index(i) for i in alive_cur if i not in alive_pre]
+                    node_list.extend(increased)
+                else:
+                    cur_node_size = np.load(
+                        config['data_args']['adj_data_path'] + str(i) + '_adj.npz')['x'].shape[0]
+                    pre_node_size = np.load(
+                        config['data_args']['adj_data_path'] + str(i-1) + '_adj.npz')['x'].shape[0]
+                    node_list.extend(list(range(pre_node_size, cur_node_size)))
+                # print('increase', len(node_list))
                 
             if config['start_up']['detect']:
                 pre_data = np.load(
                      data_dir + '_' + str(i-1) + '/' + str(i-1)+".npz")["x"]
                 cur_data = np.load(
                      data_dir_year + '/' + str(i)+".npz")["x"]
-                pre_graph = np.array(list(nx.from_numpy_matrix(
-                    np.load(config['data_args']['adj_data_path'] + str(i-1) + '_adj.npz')["x"]).edges)).T
-                cur_graph = np.array(list(nx.from_numpy_matrix(
-                    np.load(config['data_args']['adj_data_path'] + str(i) + '_adj.npz')["x"]).edges)).T
-                vars(args)["topk"] = int(0.2*args.graph_size)
+                if args.dataset == 'BAST-Stream':
+                    pre_graph = np.array(list(nx.from_numpy_matrix(np.load(
+                        config['data_args']['adj_data_path'] + 
+                        'adj_BAST_' + str(i-1) + '.npz')["x"]).edges)).T
+                    cur_graph = np.array(list(nx.from_numpy_matrix(np.load(
+                        config['data_args']['adj_data_path'] + 
+                        'adj_BAST_' + str(i) + '.npz')["x"]).edges)).T
+                else:   
+                    pre_graph = np.array(list(nx.from_numpy_matrix(np.load(
+                        config['data_args']['adj_data_path'] 
+                        + str(i-1) + '_adj.npz')["x"]).edges)).T
+                    cur_graph = np.array(list(nx.from_numpy_matrix(np.load(
+                        config['data_args']['adj_data_path'] 
+                        + str(i) + '_adj.npz')["x"]).edges)).T
+                vars(args)["topk"] = int(0.1*args.graph_size)
                 influence_node_list = detect.influence_node_selection(
-                    model, args, pre_data, cur_data, pre_graph, cur_graph)
+                    model, args, pre_data, cur_data, pre_graph, 
+                    cur_graph, timeinday=model_args['time_in_day'])
                 node_list.extend(list(influence_node_list))
+                # print('detect', len(node_list))
             
             if config['start_up']['replay']:
                 # int(0.2*args.graph_size)- len(node_list)
@@ -270,18 +295,30 @@ def main(**kwargs):
                 replay_node_list = replay.replay_node_selection(
                     args, dataloader, model)
                 node_list.extend(list(replay_node_list))
+                # print('replay', len(node_list))
+
 
             # Obtain subgraph of node list
-            cur_graph = np.array(list(nx.from_numpy_matrix(
-                    np.load(config['data_args']['adj_data_path'] + str(i) + '_adj.npz')["x"]).edges)).T
-            edge_list = list(nx.from_numpy_matrix(
-                np.load(config['data_args']['adj_data_path'] + str(i) + '_adj.npz')["x"]).edges)
+            if args.dataset == 'BAST-Stream':
+                cur_graph = np.array(list(nx.from_numpy_matrix(np.load(
+                        config['data_args']['adj_data_path'] + 
+                        'adj_BAST_' + str(i) + '.npz')["x"]).edges)).T
+                edge_list = list(nx.from_numpy_matrix(np.load(
+                    config['data_args']['adj_data_path'] + 
+                        'adj_BAST_' + str(i) + '.npz')["x"]).edges)
+            else:
+                cur_graph = np.array(list(nx.from_numpy_matrix(
+                    np.load(config['data_args']['adj_data_path'] 
+                    + str(i) + '_adj.npz')["x"]).edges)).T
+                edge_list = list(nx.from_numpy_matrix(
+                    np.load(config['data_args']['adj_data_path'] 
+                    + str(i) + '_adj.npz')["x"]).edges)
             graph_node_from_edge = set()
             for (u, v) in edge_list:
                 graph_node_from_edge.add(u)
                 graph_node_from_edge.add(v)
             node_list = list(set(node_list) & graph_node_from_edge)
-
+            # print(len(node_list))
             if len(node_list) != 0:
                 subgraph, subgraph_edge_index, mapping, _ = k_hop_subgraph(
                     node_list, num_hops=args.num_hops, edge_index=torch.LongTensor(cur_graph), 
@@ -289,20 +326,28 @@ def main(**kwargs):
                 vars(args)["subgraph"] = subgraph
                 vars(args)["subgraph_edge_index"] = subgraph_edge_index
                 vars(args)["mapping"] = mapping
-            logging.info("number of increase nodes:{}, nodes after {} hop:{}, total nodes this year {}".format
+            logging.info("number of increase nodes:{}, nodes after {} hop:{}, \
+                        total nodes this year {}".format
                         (len(node_list), args.num_hops, args.subgraph.size()[0], args.graph_size))
-            vars(args)["node_list"] = np.asarray(node_list)
-            model   = D2STGNN_Expansible(**model_args)
-            graph = nx.Graph()
-            graph.add_nodes_from(range(args.subgraph.size(0)))
-            graph.add_edges_from(args.subgraph_edge_index.numpy().T)
-            adj = nx.to_numpy_array(graph)
-            adj_mx, adj_ori = load_adj(adj, config['data_args']['adj_type'],
-                                is_npz=False, is_arr=True)
-            model_args['num_nodes']     = adj_mx[0].shape[0]
-            model_args['adjs']          = [torch.tensor(i).to(device) for i in adj_mx]
-            model_args['adjs_ori']      = torch.tensor(adj_ori).to(device)
-            sur_model = D2STGNN_Expansible(**model_args).to(device)
+            vars(args)["node_list"]    = np.asarray(node_list)
+            if config['start_up']['replay'] and config['start_up']['detect'] \
+                and config['start_up']['increase']:
+                vars(args)["full_model"]   = D2STGNN_Expansible(**model_args)
+                vars(args)["surrogate"]    = True
+                graph = nx.Graph()
+                graph.add_nodes_from(range(args.subgraph.size(0)))
+                graph.add_edges_from(args.subgraph_edge_index.numpy().T)
+                adj = nx.to_numpy_array(graph)
+                adj_mx, adj_ori = load_adj(adj, config['data_args']['adj_type'],
+                                    is_npz=False, is_arr=True)
+                model_args['num_nodes']     = adj_mx[0].shape[0]
+                model_args['adjs']          = [torch.tensor(i).to(device) for i in adj_mx]
+                model_args['adjs_ori']      = torch.tensor(adj_ori).to(device)
+                model = D2STGNN_Expansible(**model_args).to(device)
+                # print(args.subgraph[mapping].size())
+                # print(args.subgraph.size())
+            else:
+                model = D2STGNN_Expansible(**model_args).to(device)
             engine  = trainer(scaler, model, **optim_args)
 # ========================== Train ============================================================== #       
         # training init: resume model & load parameters
