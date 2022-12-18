@@ -119,7 +119,7 @@ class trainer():
         else:
             ## inverse transform for both predict and real value.
             # logging.info(output.size(), real_val.size())
-            predict     = self.scaler.inverse_transform(output.transpose(1,2))
+            predict     = self.scaler.inverse_transform(output)
             real_val    = self.scaler.inverse_transform(real_val)
             mae_loss    = self.loss(predict[:, :self.cl_len, ...], real_val[:, :self.cl_len, ...], 0)
         loss = mae_loss

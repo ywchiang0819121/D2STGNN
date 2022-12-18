@@ -50,7 +50,8 @@ def dataloaderEveryYears(dataset_name, load_pkl, data_dir, config, year, dataset
         logging.info("Load dataset: {:.2f}s...".format(t2-t1))
     scaler          = dataloader['scaler']
     
-    if dataset_name == 'PEMS04' or dataset_name == 'PEMS08' or dataset_name == 'BAST':  # traffic flow
+    # if dataset_name == 'PEMS04' or dataset_name == 'PEMS08' or dataset_name == 'BAST':  # traffic flow
+    if dataset_name == 'PEMS04' or dataset_name == 'PEMS08':  # traffic flow
         _min = pickle.load(open("{0}/min.pkl".format(data_dir), 'rb'))
         _max = pickle.load(open("{0}/max.pkl".format(data_dir), 'rb'))
     else:
