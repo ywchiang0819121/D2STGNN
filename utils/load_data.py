@@ -134,8 +134,8 @@ def load_dataset(data_dir, batch_size, valid_batch_size, test_batch_size, datase
         # data_dict['y_' + mode]  = _['y'][:length, :, :, :]
         data_dict['x_' + mode]  = _['x']
         data_dict['y_' + mode]  = _['y']
-    # if dataset_name == 'PEMS04' or dataset_name == 'PEMS08' or dataset_name=='BAST':    # traffic flow
-    if dataset_name == 'PEMS04' or dataset_name == 'PEMS08':    # traffic flow
+    if dataset_name == 'PEMS04' or dataset_name == 'PEMS08' or dataset_name=='BAST':    # traffic flow
+    #if dataset_name == 'PEMS04' or dataset_name == 'PEMS08':    # traffic flow
         _min = pickle.load(open(data_dir + "/min.pkl", 'rb'))
         _max = pickle.load(open(data_dir + "/max.pkl", 'rb'))
 

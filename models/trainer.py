@@ -122,7 +122,8 @@ class trainer():
             # logging.info(output.size(), real_val.size())
             predict     = self.scaler.inverse_transform(output)
             real_val    = self.scaler.inverse_transform(real_val)
-            mae_loss    = self.loss(predict[:, :self.cl_len, ...], real_val[:, :self.cl_len, ...], 0)
+            #mae_loss    = self.loss(predict[:, :self.cl_len, ...], real_val[:, :self.cl_len, ...], 0)
+            mae_loss    = self.loss(predict[:, :self.cl_len, ...], real_val[:, :self.cl_len, ...])
         loss = mae_loss
         loss.backward()
 
@@ -165,7 +166,8 @@ class trainer():
             
 
             # metrics
-            loss = self.loss(predict, real_val, 0.0).item()
+            #loss = self.loss(predict, real_val, 0.0).item()
+            loss = self.loss(predict, real_val).item()
             mape = masked_mape(predict,real_val,0.0).item()
             rmse = masked_rmse(predict,real_val,0.0).item()
             avgmae += loss
