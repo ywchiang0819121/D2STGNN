@@ -52,7 +52,8 @@ class trainer():
         self.lr_scheduler   = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=self.lr_sche_steps, gamma=self.lr_decay_ratio) if self.if_lr_scheduler else None
         
         # loss
-        self.loss   = masked_mae
+        # self.loss   = masked_mae
+        self.loss   = torch.nn.L1Loss()
         self.clip   = 5             # gradient clip
     
     def set_resume_lr_and_cl(self, epoch_num, batch_num):
