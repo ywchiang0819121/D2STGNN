@@ -145,7 +145,7 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
                 model_weight = engine.model.state_dict()
                 for name, param in args.full_model.named_parameters():
                     if name in ['module.node_emb_u', 'module.node_emb_d']:
-                        tmp_emb = param.clone()
+                        tmp_emb = param.clone().cpu()
                         tmp_emb[args.subgraph] = model_weight[name]
                         param.copy_(tmp_emb)
                     else:
