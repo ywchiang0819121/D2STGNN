@@ -10,11 +10,10 @@ import pickle
 from utils.train import *
 from utils.load_data import *
 from utils.log import TrainLogger
-from models import replay
-from models import detect
+from models import replay, detect, ewc
 from models.losses import *
 from models import trainer
-from models.model import D2STGNN, D2STGNN_Expansible
+from models.model import D2STGNN
 from torch_geometric.utils import to_dense_batch, k_hop_subgraph
 import yaml
 import setproctitle
@@ -150,7 +149,7 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
                         tmp_emb[args.subgraph] = model_weight[name]
                         param.copy_(tmp_emb)
                     else:
-                        param.copy_(model_weight[name])
+                        param.copy_(model_weight[name].clone())
             engine.test(args.full_model, save_path_resume, device, dataloader, scaler, model_name, args,
                 _max=_max, _min=_min, loss=engine.loss, dataset_name=dataset_name)
         else:
