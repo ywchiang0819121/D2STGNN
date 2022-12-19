@@ -88,7 +88,7 @@ class trainer():
                 parameter_num += tmp
             logging.info("Parameter size: {0}".format(parameter_num))
 
-    def train(self, input, real_val, **kwargs):
+    def train(self, input, real_val, args, **kwargs):
         self.model.train()
         self.optimizer.zero_grad()
 
@@ -116,14 +116,24 @@ class trainer():
                     kwargs["_min"][0, 0, 0, 0]).transpose(1,2).squeeze(-1)
             real_val    = self.scaler(real_val.transpose(1,2).unsqueeze(-1), kwargs["_max"][0, 0, 0, 0], 
                     kwargs["_min"][0, 0, 0, 0]).transpose(1, 2).squeeze(-1)
-            mae_loss    = self.loss(predict[:, :self.cl_len, ...], real_val[:, :self.cl_len, ...])
+            if args.cur_year > args.begin_year and args.strategy == 'incremental':
+                mae_loss    = self.loss(predict[:, :self.cl_len, args.mapping, :], 
+                                real_val[:, :self.cl_len, args.mapping, :])
+            else:
+                mae_loss    = self.loss(predict[:, :self.cl_len, ...], 
+                                real_val[:, :self.cl_len, ...])
         else:
             ## inverse transform for both predict and real value.
             # logging.info(output.size(), real_val.size())
             predict     = self.scaler.inverse_transform(output)
             real_val    = self.scaler.inverse_transform(real_val)
-            #mae_loss    = self.loss(predict[:, :self.cl_len, ...], real_val[:, :self.cl_len, ...], 0)
-            mae_loss    = self.loss(predict[:, :self.cl_len, ...], real_val[:, :self.cl_len, ...])
+            #mae_loss    = self.loss(predict[:, :self.cl_len, args.mapping, :], real_val[:, :self.cl_len, args.mapping, :], 0)
+            if args.cur_year > args.begin_year and args.strategy == 'incremental':
+                mae_loss    = self.loss(predict[:, :self.cl_len, args.mapping, :], 
+                    real_val[:, :self.cl_len, args.mapping, :])
+            else:
+                mae_loss    = self.loss(predict[:, :self.cl_len, ...], 
+                                real_val[:, :self.cl_len, ...])
         loss = mae_loss
         loss.backward()
 
@@ -137,7 +147,7 @@ class trainer():
         rmse = masked_rmse(predict,real_val,0.0)
         return mae_loss.item(), mape.item(), rmse.item()
 
-    def eval(self, device, dataloader, model_name, **kwargs):
+    def eval(self, device, dataloader, model_name, args, **kwargs):
         # val a epoch
         valid_loss = []
         valid_mape = []
@@ -147,6 +157,9 @@ class trainer():
         avgmae = 0.0
         for itera, (x, y) in enumerate(dataloader['val_loader'].get_iterator()):
             totaliter += 1
+            if args.cur_year > args.begin_year and args.strategy == 'incremental':
+                x = x[:, :, args.subgraph, :] 
+                y = y[:, :, args.subgraph, :]
             testx   = data_reshaper(x, device)
             testy   = data_reshaper(y, device)
             # for dstgnn
@@ -176,6 +189,7 @@ class trainer():
             valid_loss.append(loss)
             valid_mape.append(mape)
             valid_rmse.append(rmse)
+            # break
 
         logging.info("val: {0}".format(avgmae/totaliter))
         mvalid_loss = np.mean(valid_loss)
@@ -185,7 +199,7 @@ class trainer():
         return mvalid_loss,mvalid_mape,mvalid_rmse
 
     @staticmethod
-    def test(model, save_path_resume, device, dataloader, scaler, model_name, save=True, **kwargs):
+    def test(model, save_path_resume, device, dataloader, scaler, model_name, args, save=True, **kwargs):
         # test
         if torch.cuda.is_initialized():
                 torch.cuda.empty_cache()
@@ -194,16 +208,19 @@ class trainer():
         realy   = torch.Tensor(dataloader['y_test']).to(device)
         # realy   = realy.transpose(1, 2)
         y_list  = []
+        totaliter = 0
         for itera, (x, y) in enumerate(dataloader['test_loader'].get_iterator()):
+            totaliter += 1
             testx   = data_reshaper(x, device)
             testy   = data_reshaper(y, device)
             with torch.no_grad():
                 preds   = model(testx)
             outputs.append(preds)
             y_list.append(testy)
+            # break
 
-        yhat    = torch.cat(outputs,dim=0)[:realy.size(0),...]
-        y_list  = torch.cat(y_list, dim=0)[:realy.size(0),...]
+        yhat    = torch.cat(outputs,dim=0)[:totaliter,...]
+        y_list  = torch.cat(y_list, dim=0)[:totaliter,...]
         assert torch.where(y_list == realy)
 
         # scale data

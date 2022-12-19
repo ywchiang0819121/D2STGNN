@@ -77,13 +77,12 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
                 model_name,  _max, _min, early_stopping, save_path_resume, scaler, dataset_name, args):
     batch_num   = resume_epoch * len(dataloader['train_loader'])    
     if args.cur_year > args.begin_year and args.strategy == 'incremental':
-        model = loadpremodel(model, args.pre_model)
+        model = loadpremodel(engine.model, args.pre_model, args)
     for epoch in range(resume_epoch + 1, optim_args['epochs']):
         if torch.cuda.is_initialized():
             torch.cuda.empty_cache()
         # train a epoch
         time_train_start    = time.time()
-
         current_learning_rate = engine.lr_scheduler.get_last_lr()[0]
         train_loss = []
         train_mape = []
@@ -94,11 +93,13 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
         for itera, (x, y) in enumerate(dataloader['train_loader'].get_iterator()):
             if torch.cuda.is_initialized() and itera%10 == 0:
                 torch.cuda.empty_cache()
+            if args.cur_year > args.begin_year and args.strategy == 'incremental':
+                x = x[:, :, args.subgraph, :] 
+                y = y[:, :, args.subgraph, :]
             totaliter += 1
             trainx          = data_reshaper(x, device)
             trainy          = data_reshaper(y, device)
-            mae, mape, rmse = engine.train(trainx, trainy, batch_num=batch_num, _max=_max, _min=_min)
-            # mae, mape, rmse = 0,0,0
+            mae, mape, rmse = engine.train(trainx, trainy, args, batch_num=batch_num, _max=_max, _min=_min)
             print("train : {0}: {1}".format(itera, mae), end='\r')
             avgmae += mae
             train_loss.append(mae)
@@ -122,7 +123,7 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
         if torch.cuda.is_initialized():
             torch.cuda.empty_cache()
         time_val_start      = time.time()
-        mvalid_loss, mvalid_mape, mvalid_rmse, = engine.eval(device, dataloader, model_name, 
+        mvalid_loss, mvalid_mape, mvalid_rmse, = engine.eval(device, dataloader, model_name, args,
                         _max=_max, _min=_min)
         # mvalid_loss, mvalid_mape, mvalid_rmse, = 0,0,0
         time_val_end        = time.time()
@@ -140,22 +141,46 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
 # =============================================================== Test ================================================================= #
         if torch.cuda.is_initialized():
             torch.cuda.empty_cache()
-        engine.test(model, save_path_resume, device, dataloader, scaler, model_name, 
-            _max=_max, _min=_min, loss=engine.loss, dataset_name=dataset_name)
+        if args.cur_year > args.begin_year and args.strategy == 'incremental':
+            with torch.no_grad():
+                model_weight = engine.model.state_dict()
+                for name, param in args.full_model.named_parameters():
+                    if name in ['module.node_emb_u', 'module.node_emb_d']:
+                        tmp_emb = param.clone()
+                        tmp_emb[args.subgraph] = model_weight[name]
+                        param.copy_(tmp_emb)
+                    else:
+                        param.copy_(model_weight[name])
+            engine.test(args.full_model, save_path_resume, device, dataloader, scaler, model_name, args,
+                _max=_max, _min=_min, loss=engine.loss, dataset_name=dataset_name)
+        else:
+            engine.test(model, save_path_resume, device, dataloader, scaler, model_name, args,
+                _max=_max, _min=_min, loss=engine.loss, dataset_name=dataset_name)
         # break
 
-def loadpremodel(model, premodelpth, full_model=None):
+def loadpremodel(model, premodelpth, args):
     premodel = torch.load(premodelpth)
+    args.full_model = torch.nn.DataParallel(args.full_model)
     with torch.no_grad():
         for name, param in model.named_parameters():
-            if name in ['node_emb_u', 'node_emb_d']:
-                continue        
-            param.copy_(premodel['module.' + name])
-    if full_model != None:
-        for name, param in full_model.named_parameters():
-            if name in ['node_emb_u', 'node_emb_d']:
-                continue        
-            param.copy_(premodel['module.' + name])
+            if name in ['module.node_emb_u', 'module.node_emb_d']:
+                pre_node_len = premodel[name].size(0)
+                borrow_idx = torch.LongTensor([i for i in args.subgraph if i < pre_node_len])
+                tmp_emb = param.clone()
+                tmp_emb[:borrow_idx.size(0)] = premodel[name][borrow_idx]
+                param.copy_(tmp_emb)
+            else:
+                param.copy_(premodel[name])
+    if args.cur_year > args.begin_year and args.strategy == 'incremental':
+        with torch.no_grad():
+            for name, param in args.full_model.named_parameters():
+                if name in ['module.node_emb_u', 'module.node_emb_d']:
+                    pre_node_len = premodel[name].size(0)
+                    tmp_emb = param.clone()
+                    tmp_emb[:pre_node_len] = premodel[name]
+                    param.copy_(tmp_emb)
+                else:
+                    param.copy_(premodel[name])
     return model
 
 def main(**kwargs):
@@ -281,7 +306,7 @@ def main(**kwargs):
                     cur_graph = np.array(list(nx.from_numpy_matrix(np.load(
                         config['data_args']['adj_data_path'] 
                         + str(i) + '_adj.npz')["x"]).edges)).T
-                vars(args)["topk"] = int(0.1*args.graph_size)
+                vars(args)["topk"] = int(0.01*args.graph_size)
                 influence_node_list = detect.influence_node_selection(
                     model, args, pre_data, cur_data, pre_graph, 
                     cur_graph, timeinday=model_args['time_in_day'])
@@ -298,7 +323,10 @@ def main(**kwargs):
                 node_list.extend(list(replay_node_list))
                 # print('replay', len(node_list))
 
-
+            node_list = list(set(node_list))
+            if len(node_list) > int(0.15*args.graph_size):
+                node_list = random.sample(node_list, int(0.15*args.graph_size))
+            
             # Obtain subgraph of node list
             if args.dataset == 'BAST-Stream':
                 cur_graph = np.array(list(nx.from_numpy_matrix(np.load(
@@ -331,24 +359,22 @@ def main(**kwargs):
                         total nodes this year {}".format
                         (len(node_list), args.num_hops, args.subgraph.size()[0], args.graph_size))
             vars(args)["node_list"]    = np.asarray(node_list)
-            if config['start_up']['replay'] and config['start_up']['detect'] \
-                and config['start_up']['increase']:
-                vars(args)["full_model"]   = D2STGNN_Expansible(**model_args)
-                vars(args)["surrogate"]    = True
-                graph = nx.Graph()
-                graph.add_nodes_from(range(args.subgraph.size(0)))
-                graph.add_edges_from(args.subgraph_edge_index.numpy().T)
-                adj = nx.to_numpy_array(graph)
-                adj_mx, adj_ori = load_adj(adj, config['data_args']['adj_type'],
-                                    is_npz=False, is_arr=True)
-                model_args['num_nodes']     = adj_mx[0].shape[0]
-                model_args['adjs']          = [torch.tensor(i).to(device) for i in adj_mx]
-                model_args['adjs_ori']      = torch.tensor(adj_ori).to(device)
-                model = D2STGNN_Expansible(**model_args).to(device)
-                # print(args.subgraph[mapping].size())
-                # print(args.subgraph.size())
-            else:
-                model = D2STGNN_Expansible(**model_args).to(device)
+            vars(args)["full_model"]   = D2STGNN(**model_args)
+            graph = nx.Graph()
+            graph.add_nodes_from(range(args.subgraph.size(0)))
+            graph.add_edges_from(args.subgraph_edge_index.numpy().T)
+            adj = nx.to_numpy_array(graph)
+            adj_mx, adj_ori = load_adj(adj, config['data_args']['adj_type'],
+                                is_npz=False, is_arr=True)
+            model_args['num_nodes']     = adj_mx[0].shape[0]
+            model_args['adjs']          = [torch.tensor(i).to(device) for i in adj_mx]
+            model_args['adjs_ori']      = torch.tensor(adj_ori).to(device)
+            model = D2STGNN(**model_args).to(device)
+            # print(args.subgraph[mapping].size())
+            # print(args.subgraph[mapping].size())
+            # print(args.subgraph)
+            # print(args.subgraph.size())
+            # print(adj_ori.shape)
             engine  = trainer(scaler, model, **optim_args)
 # ========================== Train ============================================================== #       
         # training init: resume model & load parameters
