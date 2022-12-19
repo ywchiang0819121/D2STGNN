@@ -203,6 +203,7 @@ class trainer():
         # test
         if torch.cuda.is_initialized():
                 torch.cuda.empty_cache()
+        model.to(device)
         model.eval()
         outputs = []
         realy   = torch.Tensor(dataloader['y_test']).to(device)
