@@ -219,8 +219,8 @@ class trainer():
             y_list.append(testy)
             # break
 
-        yhat    = torch.cat(outputs,dim=0)[:totaliter,...]
-        y_list  = torch.cat(y_list, dim=0)[:totaliter,...]
+        yhat    = torch.cat(outputs,dim=0)[:realy.size(0),...]
+        y_list  = torch.cat(y_list, dim=0)[:realy.size(0),...]
         assert torch.where(y_list == realy)
 
         # scale data
