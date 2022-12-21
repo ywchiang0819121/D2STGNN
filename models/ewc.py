@@ -41,7 +41,7 @@ class EWC(nn.Module):
             log_likelihood = lossfunc(y, pred)
             grad_log_liklihood = autograd.grad(log_likelihood, self.model.parameters(), allow_unused=True)
             for name, grad in zip(_buff_param_names, grad_log_liklihood):
-                if grad == None:
+                if grad == None or name in ['module__node_emb_u', 'module__node_emb_d']:
                     est_fisher_info[name] = None
                 else:
                     est_fisher_info[name] += grad.data.clone() ** 2
@@ -60,6 +60,7 @@ class EWC(nn.Module):
             _buff_param_name = param_name.replace('.', '__')
             estimated_mean = getattr(self, '{}_estimated_mean'.format(_buff_param_name))
             estimated_fisher = getattr(self, '{}_estimated_fisher'.format(_buff_param_name))
+            # print(param_name, param.size(),estimated_mean.size(), estimated_fisher.size())
             if estimated_fisher == None:
                 losses.append(0)
             elif self.ewc_type == 'l2':
