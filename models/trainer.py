@@ -135,6 +135,8 @@ class trainer():
                 mae_loss    = self.loss(predict[:, :self.cl_len, ...], 
                                 real_val[:, :self.cl_len, ...])
         loss = mae_loss
+        if args.ewc and args.year > args.begin_year:
+                loss += self.model.compute_consolidation_loss()
         loss.backward()
 
         # gradient clip and optimization

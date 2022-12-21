@@ -77,6 +77,12 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
     batch_num   = resume_epoch * len(dataloader['train_loader'])    
     if args.cur_year > args.begin_year and args.strategy == 'incremental':
         model = loadpremodel(engine.model, args.pre_model, args)
+        if args.ewc:
+            if args.ewc:
+                logging.info("[*] EWC! lambda {:.6f}".format(args.ewc_lambda))
+                engine.model = ewc.EWC(engine.model, args, args.ewc_lambda, args.ewc_strategy)
+                ewc_loader = dataloader['train_loader']
+                engine.model.register_ewc_params(ewc_loader, engine.loss, device)
     for epoch in range(resume_epoch + 1, optim_args['epochs']):
         if torch.cuda.is_initialized():
             torch.cuda.empty_cache()
@@ -146,13 +152,18 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
                 for name, param in args.full_model.named_parameters():
                     if name in ['module.node_emb_u', 'module.node_emb_d']:
                         tmp_emb = param.clone().cuda()
-                        tmp_emb[args.subgraph] = model_weight[name].cuda()
+                        try:
+                            tmp_emb[args.subgraph] = model_weight[name].cuda()
+                        except:
+                            tmp_emb[args.subgraph] = model_weight['model.' + name].cuda()
                         param.copy_(tmp_emb)
                     else:
-                        param.copy_(model_weight[name].clone())
+
+                        param.copy_(model_weight['model.' + name].clone())
             engine.test(args.full_model, save_path_resume, device, dataloader, scaler, model_name, args,
                 _max=_max, _min=_min, loss=engine.loss, dataset_name=dataset_name)
         else:
+            # break
             engine.test(model, save_path_resume, device, dataloader, scaler, model_name, args,
                 _max=_max, _min=_min, loss=engine.loss, dataset_name=dataset_name)
         # break
@@ -160,26 +171,29 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
 def loadpremodel(model, premodelpth, args):
     premodel = torch.load(premodelpth)
     args.full_model = torch.nn.DataParallel(args.full_model)
+    prefix = ''
+    if args.cur_year > args.begin_year+1 and args.strategy == 'incremental' and args.ewc:
+        prefix = 'model.'
     with torch.no_grad():
         for name, param in model.named_parameters():
             if name in ['module.node_emb_u', 'module.node_emb_d']:
-                pre_node_len = premodel[name].size(0)
+                pre_node_len = premodel[prefix + name].size(0)
                 borrow_idx = torch.LongTensor([i for i in args.subgraph if i < pre_node_len])
                 tmp_emb = param.clone()
-                tmp_emb[:borrow_idx.size(0)] = premodel[name][borrow_idx]
+                tmp_emb[:borrow_idx.size(0)] = premodel[prefix + name][borrow_idx]
                 param.copy_(tmp_emb)
             else:
-                param.copy_(premodel[name])
+                param.copy_(premodel[prefix + name])
     if args.cur_year > args.begin_year and args.strategy == 'incremental':
         with torch.no_grad():
             for name, param in args.full_model.named_parameters():
                 if name in ['module.node_emb_u', 'module.node_emb_d']:
-                    pre_node_len = premodel[name].size(0)
+                    pre_node_len = premodel[prefix + name].size(0)
                     tmp_emb = param.clone()
-                    tmp_emb[:pre_node_len] = premodel[name]
+                    tmp_emb[:pre_node_len] = premodel[prefix + name]
                     param.copy_(tmp_emb)
                 else:
-                    param.copy_(premodel[name])
+                    param.copy_(premodel[prefix + name])
     return model
 
 def main(**kwargs):
@@ -206,11 +220,14 @@ def main(**kwargs):
     end_year        = config['start_up']['end_year']
     vars(args)['begin_year'] = begin_year
     vars(args)['end_year']   = end_year
+    vars(args)['graph_path']      = config['data_args']['adj_data_path']
     vars(args)['detect_strategy'] = config['start_up']['detect_strategy']
     vars(args)['replay_strategy'] = config['start_up']['replay_strategy']
     vars(args)['num_hops']        = config['start_up']['num_hops']
-    vars(args)['graph_path']      = config['data_args']['adj_data_path']
     vars(args)['strategy']        = config['start_up']['strategy']
+    vars(args)['ewc']             = config['start_up']['ewc']
+    vars(args)['ewc_strategy']    = config['start_up']['ewc_strategy']
+    vars(args)['ewc_lambda']      = config['start_up']['ewc_lambda']
     save_path_logger= './output/' + config['start_up']['model_name'] + "_Stream_" + str(begin_year) + "_" \
                 + str(end_year) + "_" + dataset_name + timestr + ".log"    
     logging.basicConfig(filename=save_path_logger, level=logging.INFO)  

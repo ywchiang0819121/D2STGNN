@@ -7,17 +7,19 @@ from torch import autograd
 import numpy as np
 import logging
 import pdb
+from utils.train import data_reshaper
 
 from torch_geometric.data import Data
 
 
 class EWC(nn.Module):
 
-    def __init__(self, model, ewc_lambda = 0, ewc_type = 'ewc'):
+    def __init__(self, model, args, ewc_lambda = 0, ewc_type = 'ewc'):
         super(EWC, self).__init__()
         self.model = model
         self.ewc_lambda = ewc_lambda
         self.ewc_type = ewc_type
+        self.args = args
 
     def _update_mean_params(self):
         for param_name, param in self.model.named_parameters():
@@ -25,15 +27,24 @@ class EWC(nn.Module):
             self.register_buffer(_buff_param_name + '_estimated_mean', param.data.clone())
 
     def _update_fisher_params(self, loader, lossfunc, device):
-        _buff_param_names = [param[0].replace('.', '__') for param in self.model.named_parameters()]
+        emb_names = ['module.node_emb_u', 'module.node_emb_d']
+        _buff_param_names = [param[0].replace('.', '__') 
+                            for param in self.model.named_parameters()]
         est_fisher_info = {name: 0.0 for name in _buff_param_names}
-        for i, data in enumerate(loader):
-            data = data.to(device, non_blocking=True)
-            pred = self.model.forward(data, self.adj)
-            log_likelihood = lossfunc(data.y, pred, reduction='mean')
-            grad_log_liklihood = autograd.grad(log_likelihood, self.model.parameters())
+        for itera, (x, y) in enumerate(loader.get_iterator()):
+            if self.args.cur_year > self.args.begin_year and self.args.strategy == 'incremental':
+                x = x[:, :, self.args.subgraph, :] 
+                y = y[:, :, self.args.subgraph, :]
+            x = data_reshaper(x, device=device)
+            y = data_reshaper(y, device=device)
+            pred = self.model.forward(x)
+            log_likelihood = lossfunc(y, pred)
+            grad_log_liklihood = autograd.grad(log_likelihood, self.model.parameters(), allow_unused=True)
             for name, grad in zip(_buff_param_names, grad_log_liklihood):
-                est_fisher_info[name] += grad.data.clone() ** 2
+                if grad == None:
+                    est_fisher_info[name] = None
+                else:
+                    est_fisher_info[name] += grad.data.clone() ** 2
         for name in _buff_param_names:
             self.register_buffer(name + '_estimated_fisher', est_fisher_info[name])
 
