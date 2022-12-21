@@ -87,7 +87,8 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
             torch.cuda.empty_cache()
         # train a epoch
         time_train_start    = time.time()
-        current_learning_rate = engine.lr_scheduler.get_last_lr()[0]
+        # current_learning_rate = engine.lr_scheduler.get_last_lr()[0]
+        current_learning_rate = engine.optimizer.param_groups[0]['lr']
         train_loss = []
         train_mape = []
         train_rmse = []
