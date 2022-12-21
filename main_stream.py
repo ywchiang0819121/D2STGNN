@@ -78,11 +78,10 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
     if args.cur_year > args.begin_year and args.strategy == 'incremental':
         model = loadpremodel(engine.model, args.pre_model, args)
         if args.ewc:
-            if args.ewc:
-                logging.info("[*] EWC! lambda {:.6f}".format(args.ewc_lambda))
-                engine.model = ewc.EWC(engine.model, args, args.ewc_lambda, args.ewc_strategy)
-                ewc_loader = dataloader['train_loader']
-                engine.model.register_ewc_params(ewc_loader, engine.loss, device)
+            logging.info("[*] EWC! lambda {:.6f}".format(args.ewc_lambda))
+            engine.model = ewc.EWC(engine.model, args, args.ewc_lambda, args.ewc_strategy)
+            ewc_loader = dataloader['train_loader']
+            engine.model.register_ewc_params(ewc_loader, engine.loss, device)
     for epoch in range(resume_epoch + 1, optim_args['epochs']):
         if torch.cuda.is_initialized():
             torch.cuda.empty_cache()
