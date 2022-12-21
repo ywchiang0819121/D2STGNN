@@ -119,7 +119,7 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
         current_learning_rate = engine.optimizer.param_groups[0]['lr']
 
         if engine.if_lr_scheduler:
-            engine.lr_scheduler.step()
+            engine.lr_scheduler.step(avgmae/totaliter)
         # record history loss
         mtrain_loss = np.mean(train_loss)
         mtrain_mape = np.mean(train_mape)
