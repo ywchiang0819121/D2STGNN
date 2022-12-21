@@ -49,7 +49,10 @@ class trainer():
         # Adam optimizer
         self.optimizer      = optim.AdamW(self.model.parameters(), lr=self.lrate, weight_decay=self.wdecay, eps=self.eps)
         # learning rate scheduler
-        self.lr_scheduler   = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=self.lr_sche_steps, gamma=self.lr_decay_ratio) if self.if_lr_scheduler else None
+        self.lr_scheduler   = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 
+            factor=self.lr_decay_ratio, min_lr=1e-3) if self.if_lr_scheduler else None
+        # self.lr_scheduler   = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, 
+        #     milestones=self.lr_sche_steps, gamma=self.lr_decay_ratio) if self.if_lr_scheduler else None
         
         # loss
         # self.loss   = masked_mae
