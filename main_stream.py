@@ -45,8 +45,12 @@ def dataloaderEveryYears(dataset_name, load_pkl, data_dir, config, year, dataset
     else:
         t1   = time.time()
         batch_size  = config['model_args']['batch_size']
-        dataloader  = load_dataset(data_dir, batch_size, batch_size, 
-                    batch_size, dataset_name, year=str(year))
+        if dataset_type == 'BAST-Stream':
+            dataloader  = load_dataset(data_dir, batch_size, batch_size, 
+                batch_size, dataset_name, two_way=True, year=str(year))
+        else:
+            dataloader  = load_dataset(data_dir, batch_size, batch_size, 
+                batch_size, dataset_name, year=str(year))
         pickle.dump(dataloader, open('./output/dataloader_' + dataset_name + '_' + str(year)\
                  + '.pkl', 'wb'))
         t2  = time.time()
@@ -108,7 +112,7 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
             totaliter += 1
             trainx          = data_reshaper(x, device)
             trainy          = data_reshaper(y, device)
-            # print(trainx.min(), trainx.max(), trainy.min(), trainy.max())
+            print(trainx.min(), trainx.max(), trainy.min(), trainy.max())
             mae, mape, rmse = engine.train(trainx, trainy, args, batch_num=batch_num, _max=_max, _min=_min)
             print("train : {0}: {1}".format(itera, mae), end='\r')
             avgmae += mae
