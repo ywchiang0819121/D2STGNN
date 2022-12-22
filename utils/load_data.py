@@ -102,7 +102,8 @@ def load_pickle(pickle_file):
         raise
     return pickle_data
 
-def load_dataset(data_dir, batch_size, valid_batch_size, test_batch_size, dataset_name, year=''):
+def load_dataset(data_dir, batch_size, valid_batch_size, 
+                    test_batch_size, dataset_name, year='', two_way=False):
     r"""
     Description:
     -----------
@@ -134,12 +135,23 @@ def load_dataset(data_dir, batch_size, valid_batch_size, test_batch_size, datase
         # data_dict['y_' + mode]  = _['y'][:length, :, :, :]
         data_dict['x_' + mode]  = _['x']
         data_dict['y_' + mode]  = _['y']
-    if dataset_name == 'PEMS04' or dataset_name == 'PEMS08' or dataset_name=='BAST':    # traffic flow
-    #if dataset_name == 'PEMS04' or dataset_name == 'PEMS08':    # traffic flow
+    # if dataset_name == 'PEMS04' or dataset_name == 'PEMS08' or dataset_name=='BAST':    # traffic flow
+    if dataset_name == 'PEMS04' or dataset_name == 'PEMS08':    # traffic flow
         _min = pickle.load(open(data_dir + "/min.pkl", 'rb'))
         _max = pickle.load(open(data_dir + "/max.pkl", 'rb'))
 
         # normalization
+        x_train = np.transpose(data_dict['x_train'], axes=[0, 2, 1, 3])
+        x_val = np.transpose(data_dict['x_val'], axes=[0, 2, 1, 3])
+        x_test = np.transpose(data_dict['x_test'], axes=[0, 2, 1, 3])
+    
+        x_train_new = max_min_normalization(x_train, _max[:, :, 0, :], _min[:, :, 0, :])
+        x_val_new = max_min_normalization(x_val, _max[:, :, 0, :], _min[:, :, 0, :])
+        x_test_new = max_min_normalization(x_test, _max[:, :, 0, :], _min[:, :, 0, :])
+        data_dict['x_train']    = np.transpose(x_train_new, axes=[0, 2, 1, 3])
+        data_dict['x_val']      = np.transpose(x_val_new, axes=[0, 2, 1, 3])
+        data_dict['x_test']     = np.transpose(x_test_new, axes=[0, 2, 1, 3])
+
         y_train = np.transpose(data_dict['y_train'], axes=[0, 2, 1, 3])
         y_val = np.transpose(data_dict['y_val'], axes=[0, 2, 1, 3])
         y_test = np.transpose(data_dict['y_test'], axes=[0, 2, 1, 3])
@@ -164,6 +176,9 @@ def load_dataset(data_dir, batch_size, valid_batch_size, test_batch_size, datase
             # continue
             data_dict['x_' + mode][..., 0] = scaler.transform(data_dict['x_' + mode][..., 0])
             data_dict['y_' + mode][..., 0] = scaler.transform(data_dict['y_' + mode][..., 0])
+            if two_way:
+                data_dict['x_' + mode][..., 1] = scaler.transform(data_dict['x_' + mode][..., 1])
+                data_dict['y_' + mode][..., 1] = scaler.transform(data_dict['y_' + mode][..., 1])
         
         data_dict['train_loader']   = DataLoader(data_dict['x_train'], data_dict['y_train'], batch_size, shuffle=True)
         data_dict['val_loader']     = DataLoader(data_dict['x_val'], data_dict['y_val'], valid_batch_size)

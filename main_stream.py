@@ -49,8 +49,8 @@ def dataloaderEveryYears(dataset_name, load_pkl, data_dir, config, year, dataset
         logging.info("Load dataset: {:.2f}s...".format(t2-t1))
     scaler          = dataloader['scaler']
     
-    if dataset_name == 'PEMS04' or dataset_name == 'PEMS08' or dataset_name == 'BAST':  # traffic flow
-    #if dataset_name == 'PEMS04' or dataset_name == 'PEMS08':  # traffic flow
+    # if dataset_name == 'PEMS04' or dataset_name == 'PEMS08' or dataset_name == 'BAST':  # traffic flow
+    if dataset_name == 'PEMS04' or dataset_name == 'PEMS08':  # traffic flow
         _min = pickle.load(open("{0}/min.pkl".format(data_dir), 'rb'))
         _max = pickle.load(open("{0}/max.pkl".format(data_dir), 'rb'))
     else:
@@ -104,6 +104,7 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
             totaliter += 1
             trainx          = data_reshaper(x, device)
             trainy          = data_reshaper(y, device)
+            # print(trainx.min(), trainx.max(), trainy.min(), trainy.max())
             mae, mape, rmse = engine.train(trainx, trainy, args, batch_num=batch_num, _max=_max, _min=_min)
             print("train : {0}: {1}".format(itera, mae), end='\r')
             avgmae += mae
