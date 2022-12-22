@@ -31,7 +31,11 @@ def dataloaderEveryYears(dataset_name, load_pkl, data_dir, config, year, dataset
                  + '.pkl', 'rb'))
         except:
             batch_size  = config['model_args']['batch_size']
-            dataloader  = load_dataset(data_dir, batch_size, batch_size, 
+            if dataset_type == 'BAST-Stream':
+                dataloader  = load_dataset(data_dir, batch_size, batch_size, 
+                    batch_size*4, dataset_name, two_way=True, year=str(year))
+            else:
+                dataloader  = load_dataset(data_dir, batch_size, batch_size, 
                     batch_size*4, dataset_name, year=str(year))
             gc.collect()
             pickle.dump(dataloader, open('./output/dataloader_' + dataset_name + '_' + str(year)\
