@@ -112,7 +112,7 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
             totaliter += 1
             trainx          = data_reshaper(x, device)
             trainy          = data_reshaper(y, device)
-            print(trainx.min(), trainx.max(), trainy.min(), trainy.max())
+            # print(trainx.min(), trainx.max(), trainy.min(), trainy.max())
             mae, mape, rmse = engine.train(trainx, trainy, args, batch_num=batch_num, _max=_max, _min=_min)
             print("train : {0}: {1}".format(itera, mae), end='\r')
             avgmae += mae
