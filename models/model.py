@@ -60,7 +60,7 @@ class D2STGNN(nn.Module):
         self.gap = model_args['gap'] 
         self.time_in_day    = model_args['time_in_day']
 
-        model_args['use_pre']   = True
+        model_args['use_pre']   = False
         model_args['dy_graph']  = True
         model_args['sta_graph'] = True
 
