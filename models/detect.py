@@ -61,11 +61,17 @@ def influence_node_selection(model, args, pre_data, cur_data, pre_graph, cur_gra
         node_size = pre_data.shape[1]
         score = []
         for node in range(node_size):
-            max_val = max(np.max(pre_data[:,node, :]), np.max(cur_data[:,node, :]))
-            min_val = min(np.min(pre_data[:,node, :]), np.min(cur_data[:,node, :]))
-            pre_prob, _ = np.histogram(pre_data[:,node, :], bins=10, range=(min_val, max_val))
-            pre_prob = pre_prob *1.0 / sum(pre_prob)
-            cur_prob, _ = np.histogram(cur_data[:,node, :], bins=10, range=(min_val, max_val))
+            if timeinday == 288:
+                max_val = max(np.max(pre_data[:,node]), np.max(cur_data[:,node]))
+                min_val = min(np.min(pre_data[:,node]), np.min(cur_data[:,node]))
+                pre_prob, _ = np.histogram(pre_data[:,node], bins=10, range=(min_val, max_val))
+                cur_prob, _ = np.histogram(cur_data[:,node], bins=10, range=(min_val, max_val))
+            else:
+                max_val = max(np.max(pre_data[:,node, :]), np.max(cur_data[:,node, :]))
+                min_val = min(np.min(pre_data[:,node, :]), np.min(cur_data[:,node, :]))
+                pre_prob, _ = np.histogram(pre_data[:,node, :], bins=10, range=(min_val, max_val))
+                cur_prob, _ = np.histogram(cur_data[:,node, :], bins=10, range=(min_val, max_val))
+            pre_prob = pre_prob * 1.0 / sum(pre_prob)
             cur_prob = cur_prob * 1.0 /sum(cur_prob)
             score.append(kldiv(pre_prob, cur_prob))
         # return staiton_id of topk max score, station with larger KL score needs more training

@@ -238,7 +238,8 @@ def main(**kwargs):
     vars(args)['ewc_strategy']    = config['start_up']['ewc_strategy']
     vars(args)['ewc_lambda']      = config['start_up']['ewc_lambda']
     save_path_logger= './output/' + config['start_up']['model_name'] + "_Stream_" + str(begin_year) + "_" \
-                + str(end_year) + "_" + dataset_name + timestr + ".log"    
+                + str(end_year) + "_" + dataset_name + timestr + '_Strategy_' + str(args.strategy) \
+                + '_detect_' + str(config['start_up']['detect']) + ".log"    
     logging.basicConfig(filename=save_path_logger, level=logging.INFO)  
     setproctitle.setproctitle("{0}.{1}@S22".format(model_name, dataset_name))
 # ================================ Hyper Parameters ================================= #
@@ -279,9 +280,11 @@ def main(**kwargs):
         optim_args['cl_steps']      = optim_args['cl_epochs'] * len(dataloader['train_loader'])
         optim_args['warm_steps']    = optim_args['warm_epochs'] * len(dataloader['train_loader'])
         save_path       = './output/' + config['start_up']['model_name'] + "_Stream_" \
-                            + str(i)+ "_" + dataset_name + ".pt"             # the best model
+                            + str(i)+ "_" + dataset_name + '_Strategy_' + str(args.strategy) \
+                            + '_detect_' + str(config['start_up']['detect']) + ".pt"             # the best model
         save_path_resume= './output/' + config['start_up']['model_name'] + "_Stream_" \
-                            + str(i)+ "_" + dataset_name + "_resume.pt"      # the resume model
+                            + str(i)+ "_" + dataset_name + '_Strategy_' + str(args.strategy) \
+                            + '_detect_' + str(config['start_up']['detect']) + "_resume.pt"      # the resume model
 
         logger.print_model_args(model_args, ban=['adjs', 'adjs_ori', 'node_emb'])
         logger.print_optim_args(optim_args)
