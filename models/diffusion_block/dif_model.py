@@ -47,7 +47,8 @@ class STLocalizedConv(nn.Module):
         return out
 
     def get_graph(self, support):
-        # Only used in static including static hidden graph and predefined graph, but not used for dynamic graph.
+        # Only used in static including static hidden graph and predefined graph, 
+        # but not used for dynamic graph.
         graph_ordered = []
         mask = 1 - torch.eye(support[0].shape[0]).to(support[0].device)
         for graph in support:

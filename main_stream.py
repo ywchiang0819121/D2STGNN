@@ -167,8 +167,10 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
                             tmp_emb[args.subgraph] = model_weight['model.' + name].cuda()
                         param.copy_(tmp_emb)
                     else:
-
-                        param.copy_(model_weight['model.' + name].clone())
+                        try:
+                            param.copy_(model_weight['model.' + name].clone())
+                        except:
+                            param.copy_(model_weight[name].clone())
             engine.test(args.full_model, save_path_resume, device, dataloader, scaler, model_name, args,
                 _max=_max, _min=_min, loss=engine.loss, dataset_name=dataset_name)
         else:
