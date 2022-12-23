@@ -283,10 +283,10 @@ def main(**kwargs):
         optim_args['warm_steps']    = optim_args['warm_epochs'] * len(dataloader['train_loader'])
         save_path       = './output/' + config['start_up']['model_name'] + "_Stream_" \
                             + str(i)+ "_" + dataset_name + '_Strategy_' + str(args.strategy) \
-                            + '_detect_' + str(config['start_up']['detect']) + ".pt"             # the best model
+                            + '_detect_' + str(config['start_up']['detect']) + timestr + ".pt"             # the best model
         save_path_resume= './output/' + config['start_up']['model_name'] + "_Stream_" \
                             + str(i)+ "_" + dataset_name + '_Strategy_' + str(args.strategy) \
-                            + '_detect_' + str(config['start_up']['detect']) + "_resume.pt"      # the resume model
+                            + '_detect_' + str(config['start_up']['detect']) + timestr + "_resume.pt"      # the resume model
 
         logger.print_model_args(model_args, ban=['adjs', 'adjs_ori', 'node_emb'])
         logger.print_optim_args(optim_args)

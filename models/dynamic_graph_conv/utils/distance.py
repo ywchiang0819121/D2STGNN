@@ -7,13 +7,14 @@ class DistanceFunction(nn.Module):
     def __init__(self, **model_args):
         super().__init__()
         # attributes
+        self._in_feat       = model_args['num_feat']
         self.hidden_dim = model_args['num_hidden']
         self.node_dim   = model_args['node_hidden']
         self.time_slot_emb_dim  = self.hidden_dim
         self.input_seq_len      = model_args['seq_length']
         # Time Series Feature Extraction
         self.dropout    = nn.Dropout(model_args['dropout'])
-        self.fc_ts_emb1 = nn.Linear(self.input_seq_len, self.hidden_dim * 2)
+        self.fc_ts_emb1 = nn.Linear(self.input_seq_len * self._in_feat, self.hidden_dim * 2)
         self.fc_ts_emb2 = nn.Linear(self.hidden_dim * 2, self.hidden_dim)
         self.ts_feat_dim= self.hidden_dim
         # Time Slot Embedding Extraction
@@ -35,9 +36,9 @@ class DistanceFunction(nn.Module):
         T_D = T_D[:, -1, :, :]
         D_W = D_W[:, -1, :, :]
         # dynamic information
-        X = X[:, :, :, 0].transpose(1, 2).contiguous()       # X->[batch_size, seq_len, num_nodes]->[batch_size, num_nodes, seq_len]
-        [batch_size, num_nodes, seq_len] = X.shape
-        X = X.view(batch_size * num_nodes, seq_len)
+        X = X[:, :, :, :self._in_feat].transpose(1, 2).contiguous()       # X->[batch_size, seq_len, num_nodes]->[batch_size, num_nodes, seq_len]
+        [batch_size, num_nodes, seq_len, self._in_feat] = X.shape
+        X = X.view(batch_size * num_nodes, seq_len * self._in_feat)
         dy_feat = self.fc_ts_emb2(self.dropout(self.bn(F.relu(self.fc_ts_emb1(X)))))     # [batchsize, num_nodes, hidden_dim]
         dy_feat = dy_feat.view(batch_size, num_nodes, -1)
         # node embedding
