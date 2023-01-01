@@ -17,4 +17,5 @@
 #export USE_SIMPLE_THREADED_LEVEL3=1
 #export MKL_NUM_THREADS=1
 
-python main.py
+#python main.py
+nvidia-smi

@@ -210,8 +210,8 @@ def loadpremodel(model, premodelpth, args):
 def main(**kwargs):
     set_config(0)
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='Pems3-Stream', help='Dataset name.')
-    #parser.add_argument('--dataset', type=str, default='BAST-Stream', help='Dataset name.')
+    #parser.add_argument('--dataset', type=str, default='Pems3-Stream', help='Dataset name.')
+    parser.add_argument('--dataset', type=str, default='BAST-Stream', help='Dataset name.')
     parser.add_argument('--stream', type=int, default=0, help='Dataset name.')
     args = parser.parse_args()
     config_path = "configs/" + args.dataset + ".yaml"
@@ -264,6 +264,8 @@ def main(**kwargs):
     
 # ========================== load dataset, adjacent matrix, node embeddings ====================== #
     for i in range(begin_year, end_year+1):
+        train_time  = []    # training time
+        val_time    = []    # validate time
         vars(args)['cur_year'] = i
         if args.dataset == 'Pems3-Stream' or args.dataset == 'BAST-Stream':
             data_dir_year = data_dir + '_' + str(i)
@@ -354,8 +356,8 @@ def main(**kwargs):
                 # print('replay', len(node_list))
 
             node_list = list(set(node_list))
-            if len(node_list) > int(0.15*args.graph_size):
-                node_list = random.sample(node_list, int(0.15*args.graph_size))
+            if len(node_list) > int(0.1*args.graph_size):
+                node_list = random.sample(node_list, int(0.1*args.graph_size))
             
             # Obtain subgraph of node list
             if args.dataset == 'BAST-Stream':
