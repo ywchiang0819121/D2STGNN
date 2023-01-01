@@ -57,8 +57,8 @@ def dataloaderEveryYears(dataset_name, load_pkl, data_dir, config, year, dataset
         logging.info("Load dataset: {:.2f}s...".format(t2-t1))
     scaler          = dataloader['scaler']
     
-    if dataset_name == 'PEMS04' or dataset_name == 'PEMS08' or dataset_name == 'BAST':  # traffic flow
-    # if dataset_name == 'PEMS04' or dataset_name == 'PEMS08':  # traffic flow
+    # if dataset_name == 'PEMS04' or dataset_name == 'PEMS08' or dataset_name == 'BAST':  # traffic flow
+    if dataset_name == 'PEMS04' or dataset_name == 'PEMS08':  # traffic flow
         _min = pickle.load(open("{0}/min.pkl".format(data_dir), 'rb'))
         _max = pickle.load(open("{0}/max.pkl".format(data_dir), 'rb'))
     else:
@@ -210,8 +210,8 @@ def loadpremodel(model, premodelpth, args):
 def main(**kwargs):
     set_config(0)
     parser = argparse.ArgumentParser()
-    #parser.add_argument('--dataset', type=str, default='Pems3-Stream', help='Dataset name.')
-    parser.add_argument('--dataset', type=str, default='BAST-Stream', help='Dataset name.')
+    parser.add_argument('--dataset', type=str, default='Pems3-Stream', help='Dataset name.')
+    #parser.add_argument('--dataset', type=str, default='BAST-Stream', help='Dataset name.')
     parser.add_argument('--stream', type=int, default=0, help='Dataset name.')
     args = parser.parse_args()
     config_path = "configs/" + args.dataset + ".yaml"
