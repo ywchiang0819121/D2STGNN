@@ -18,4 +18,4 @@
 #export MKL_NUM_THREADS=1
 
 #python main.py
-nvidia-smi
+nvidia-smi  sdf
