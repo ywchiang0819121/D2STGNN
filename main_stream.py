@@ -164,7 +164,9 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
                             param.copy_(model_weight['model.' + name].clone())
                         except:
                             param.copy_(model_weight[name].clone())
-        early_stopping(mvalid_loss, args.full_model)
+            early_stopping(mvalid_loss, args.full_model)
+        else:
+            early_stopping(mvalid_loss, model)
         if early_stopping.early_stop:
             logging.info('Early stopping!')
             break
