@@ -172,6 +172,6 @@ class D2STGNN(nn.Module):
         forecast    = self.out_fc_2(forecast)
         forecast    = forecast.transpose(1,2).contiguous()\
                 .view(forecast.shape[0], forecast.shape[2], 12, self._out_feat)
-        forecast    = torch.sinh(forecast.transpose(1,2)) + history_data[..., :self._out_feat]
+        forecast    = forecast.transpose(1,2) + history_data[..., :self._out_feat]
 
         return forecast
