@@ -179,8 +179,8 @@ class trainer():
                 real_val= self.scaler(testy.transpose(1, 2).unsqueeze(-1), kwargs["_max"][0, 0, 0, 0], 
                             kwargs["_min"][0, 0, 0, 0]).transpose(1, 2)
             else:
-                predict = self.scaler.inverse_transform(output)
-                real_val= self.scaler.inverse_transform(testy)
+                predict = self.scaler.inverse_transform(output).transpose(1, 2)
+                real_val= self.scaler.inverse_transform(testy).transpose(1, 2)
             
 
             # metrics
@@ -204,7 +204,8 @@ class trainer():
         return mvalid_loss,mvalid_mape,mvalid_rmse
 
     @staticmethod
-    def test(model, save_path_resume, device, dataloader, scaler, model_name, args, save=True, **kwargs):
+    def test(model, save_path_resume, device, dataloader, scaler, 
+             model_name, args, year='', save=True, **kwargs):
         # test
         if torch.cuda.is_initialized():
                 torch.cuda.empty_cache()
@@ -236,13 +237,15 @@ class trainer():
             yhat    = scaler(yhat.squeeze(-1), kwargs["_max"][0, 0, 0, 0], 
                             kwargs["_min"][0, 0, 0, 0]).transpose(1, 2)
         else:
-            realy   = scaler.inverse_transform(realy)
-            yhat    = scaler.inverse_transform(yhat)
+            realy   = scaler.inverse_transform(realy).transpose(1, 2)
+            yhat    = scaler.inverse_transform(yhat).transpose(1, 2)
         
         # summarize the results.
         amae    = []
         amape   = []
         armse   = []
+        print('save')
+        np.savez(year+'_ans.npz', yhat=yhat.cpu().numpy(), y=realy.cpu().numpy())
 
         for i in range(12):
             # For horizon i, only calculate the metrics **at that time** slice here.

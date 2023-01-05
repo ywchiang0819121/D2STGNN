@@ -148,13 +148,6 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
          Train_RMSE: {:.4f}  \n | Valid_Loss: {:.4f} | Valid_RMSE: {:.4f} | Valid_MAPE: {:.4f} | LR: {:.6f}'
         logging.info(log.format(epoch, mtrain_loss, mtrain_mape, mtrain_rmse, mvalid_loss, 
                 mvalid_rmse, mvalid_mape, current_learning_rate))
-        early_stopping(mvalid_loss, engine.model)
-        if early_stopping.early_stop:
-            logging.info('Early stopping!')
-            break
-# =============================================================== Test ================================================================= #
-        if torch.cuda.is_initialized():
-            torch.cuda.empty_cache()
         if args.cur_year > args.begin_year and args.strategy == 'incremental':
             with torch.no_grad():
                 model_weight = engine.model.state_dict()
@@ -171,6 +164,14 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
                             param.copy_(model_weight['model.' + name].clone())
                         except:
                             param.copy_(model_weight[name].clone())
+        early_stopping(mvalid_loss, args.full_model)
+        if early_stopping.early_stop:
+            logging.info('Early stopping!')
+            break
+# =============================================================== Test ================================================================= #
+        if torch.cuda.is_initialized():
+            torch.cuda.empty_cache()
+        if args.cur_year > args.begin_year and args.strategy == 'incremental':
             engine.test(args.full_model, save_path_resume, device, dataloader, scaler, model_name, args,
                 _max=_max, _min=_min, loss=engine.loss, dataset_name=dataset_name)
         else:
@@ -210,8 +211,8 @@ def loadpremodel(model, premodelpth, args):
 def main(**kwargs):
     set_config(0)
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='Pems3-Stream', help='Dataset name.')
-    #parser.add_argument('--dataset', type=str, default='BAST-Stream', help='Dataset name.')
+    # parser.add_argument('--dataset', type=str, default='Pems3-Stream', help='Dataset name.')
+    parser.add_argument('--dataset', type=str, default='BAST-Stream', help='Dataset name.')
     parser.add_argument('--stream', type=int, default=0, help='Dataset name.')
     args = parser.parse_args()
     config_path = "configs/" + args.dataset + ".yaml"
@@ -415,7 +416,16 @@ def main(**kwargs):
         assert mode in ['test', 'resume', 'scratch']
         resume_epoch = 0
         if mode == 'test':
-            model = load_model(model, save_path)        # resume best
+            if args.cur_year > args.begin_year and args.strategy == 'incremental':
+                tmp_timestr = '_2023-01-01__17_38_08'
+                save_path       = './output/' + config['start_up']['model_name'] + "_Stream_" \
+                                + str(i)+ "_" + dataset_name + '_Strategy_' + str(args.strategy) \
+                                + '_detect_' + str(config['start_up']['detect']) + tmp_timestr + ".pt" 
+                args.full_model = load_model(args.full_model, save_path)        # resume best
+                engine.test(args.full_model, save_path_resume, device, dataloader, scaler, 
+                    model_name, args, year=str(i),  _max=_max, _min=_min, 
+                    loss=engine.loss, dataset_name=dataset_name) 
+                continue
         else:
             if mode == 'resume':
                 resume_epoch = config['start_up']['resume_epoch']
@@ -437,7 +447,7 @@ def main(**kwargs):
             logging.info("Average Inference Time: {:.4f} secs/epoch".format(np.mean(val_time)))
         else:
             engine.test(model, save_path_resume, device, dataloader, 
-                scaler, model_name, save=False, _max=_max, _min=_min, 
+                scaler, model_name, args, year=str(i), save=False, _max=_max, _min=_min, 
                 loss=engine.loss, dataset_name=dataset_name)
         last_save_path = save_path
 
