@@ -210,8 +210,8 @@ def loadpremodel(model, premodelpth, args):
 def main(**kwargs):
     set_config(0)
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='Pems3-Stream', help='Dataset name.')
-    #parser.add_argument('--dataset', type=str, default='BAST-Stream', help='Dataset name.')
+    #parser.add_argument('--dataset', type=str, default='Pems3-Stream', help='Dataset name.')
+    parser.add_argument('--dataset', type=str, default='BAST-Stream', help='Dataset name.')
     parser.add_argument('--stream', type=int, default=0, help='Dataset name.')
     args = parser.parse_args()
     config_path = "configs/" + args.dataset + ".yaml"
