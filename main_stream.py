@@ -190,7 +190,6 @@ def loadpremodel(model, premodelpth, args):
         prefix = ''
     with torch.no_grad():
         for name, param in model.named_parameters():
-            # print(name, premodel)
             if name in ['module.node_emb_u', 'module.node_emb_d']:
                 try:
                     pre_node_len = premodel[prefix + name].size(0)
@@ -210,22 +209,26 @@ def loadpremodel(model, premodelpth, args):
                     param.copy_(premodel[prefix + name])
                 except:
                     tmpname = str(name).replace('module.','')
-                    # print(name, tmpname)
                     param.copy_(premodel[tmpname])
     if args.cur_year > args.begin_year and args.strategy == 'incremental':
         with torch.no_grad():
             for name, param in args.full_model.named_parameters():
-                # print(name, premodel)
                 if name in ['module.node_emb_u', 'module.node_emb_d']:
                     try:
                         pre_node_len = premodel[prefix + name].size(0)
                         tmp_emb = param.clone()
-                        tmp_emb[:pre_node_len] = premodel[prefix + name]
+                        if pre_node_len > param.size(0):
+                            tmp_emb = premodel[prefix + name][:param.size(0)]
+                        else:  
+                            tmp_emb[:pre_node_len] = premodel[prefix + name]
                         param.copy_(tmp_emb)
                     except:
                         pre_node_len = premodel[name.replace('module.','')].size(0)
                         tmp_emb = param.clone()
-                        tmp_emb[:pre_node_len] = premodel[name.replace('module.','')]
+                        if pre_node_len > param.size(0):
+                            tmp_emb = premodel[name.replace('module.','')][:param.size(0)]
+                        else:  
+                            tmp_emb[:pre_node_len] = premodel[name.replace('module.','')]
                         param.copy_(tmp_emb)
                 else:
                     try:

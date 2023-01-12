@@ -58,7 +58,7 @@ def influence_node_selection(model, args, pre_data, cur_data, pre_graph, cur_gra
     if args.detect_strategy == 'original':
         pre_data = pre_data[-timeinday*7-1:-1,:]
         cur_data = cur_data[-timeinday*7-1:-1,:]
-        node_size = pre_data.shape[1]
+        node_size = min(pre_data.shape[1], cur_data.shape[1])
         score = []
         for node in range(node_size):
             if timeinday == 288:
