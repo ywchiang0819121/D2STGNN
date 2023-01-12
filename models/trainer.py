@@ -165,8 +165,8 @@ class trainer():
         for itera, (x, y) in enumerate(dataloader['val_loader'].get_iterator()):
             totaliter += 1
             if args.cur_year > args.begin_year and args.strategy == 'incremental':
-                x = x[:, :, args.subgraph, :] 
-                y = y[:, :, args.subgraph, :]
+                x = x[:, :, args.subgraph, :].reshape(x.shape[0], x.shape[1], len(args.subgraph), x.shape[3]) 
+                y = y[:, :, args.subgraph, :].reshape(y.shape[0], y.shape[1], len(args.subgraph), y.shape[3])
             testx   = data_reshaper(x, device)
             testy   = data_reshaper(y, device)
             # for dstgnn

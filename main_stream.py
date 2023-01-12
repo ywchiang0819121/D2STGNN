@@ -107,8 +107,8 @@ def trainAYear(model, resume_epoch, optim_args, engine, dataloader, train_time, 
             if torch.cuda.is_initialized() and itera%10 == 0:
                 torch.cuda.empty_cache()
             if args.cur_year > args.begin_year and args.strategy == 'incremental':
-                x = x[:, :, args.subgraph, :] 
-                y = y[:, :, args.subgraph, :]
+                x = x[:, :, args.subgraph, :].reshape(x.shape[0], x.shape[1], len(args.subgraph), x.shape[3])
+                y = y[:, :, args.subgraph, :].reshape(y.shape[0], y.shape[1], len(args.subgraph), y.shape[3])
             totaliter += 1
             trainx          = data_reshaper(x, device)
             trainy          = data_reshaper(y, device)
@@ -190,7 +190,7 @@ def loadpremodel(model, premodelpth, args):
         prefix = ''
     with torch.no_grad():
         for name, param in model.named_parameters():
-            print(name, premodel)
+            # print(name, premodel)
             if name in ['module.node_emb_u', 'module.node_emb_d']:
                 try:
                     pre_node_len = premodel[prefix + name].size(0)
@@ -210,12 +210,12 @@ def loadpremodel(model, premodelpth, args):
                     param.copy_(premodel[prefix + name])
                 except:
                     tmpname = str(name).replace('module.','')
-                    print(name, tmpname)
+                    # print(name, tmpname)
                     param.copy_(premodel[tmpname])
     if args.cur_year > args.begin_year and args.strategy == 'incremental':
         with torch.no_grad():
             for name, param in args.full_model.named_parameters():
-                print(name, premodel)
+                # print(name, premodel)
                 if name in ['module.node_emb_u', 'module.node_emb_d']:
                     try:
                         pre_node_len = premodel[prefix + name].size(0)
@@ -414,7 +414,7 @@ def main(**kwargs):
                 vars(args)["subgraph"] = subgraph
                 vars(args)["subgraph_edge_index"] = subgraph_edge_index
                 vars(args)["mapping"] = mapping
-            logging.info("number of increase nodes:{}, nodes after {} hop:{}, \
+                logging.info("number of increase nodes:{}, nodes after {} hop:{}, \
                         total nodes this year {}".format
                         (len(node_list), args.num_hops, args.subgraph.size()[0], args.graph_size))
             vars(args)["node_list"]    = np.asarray(node_list)
