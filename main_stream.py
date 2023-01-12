@@ -187,27 +187,51 @@ def loadpremodel(model, premodelpth, args):
     args.full_model = torch.nn.DataParallel(args.full_model)
     prefix = ''
     if args.cur_year > args.begin_year+1 and args.strategy == 'incremental' and args.ewc:
-        prefix = 'model.'
+        prefix = ''
     with torch.no_grad():
         for name, param in model.named_parameters():
+            print(name, premodel)
             if name in ['module.node_emb_u', 'module.node_emb_d']:
-                pre_node_len = premodel[prefix + name].size(0)
-                borrow_idx = torch.LongTensor([i for i in args.subgraph if i < pre_node_len])
-                tmp_emb = param.clone()
-                tmp_emb[:borrow_idx.size(0)] = premodel[prefix + name][borrow_idx]
-                param.copy_(tmp_emb)
+                try:
+                    pre_node_len = premodel[prefix + name].size(0)
+                    borrow_idx = torch.LongTensor([i for i in args.subgraph if i < pre_node_len])
+                    tmp_emb = param.clone()
+                    tmp_emb[:borrow_idx.size(0)] = premodel[prefix + name][borrow_idx]
+                    param.copy_(tmp_emb)
+                except:
+                    tmpname = str(name).replace('module.','')
+                    pre_node_len = premodel[tmpname].size(0)
+                    borrow_idx = torch.LongTensor([i for i in args.subgraph if i < pre_node_len])
+                    tmp_emb = param.clone()
+                    tmp_emb[:borrow_idx.size(0)] = premodel[tmpname][borrow_idx]
+                    param.copy_(tmp_emb)
             else:
-                param.copy_(premodel[prefix + name])
+                try:
+                    param.copy_(premodel[prefix + name])
+                except:
+                    tmpname = str(name).replace('module.','')
+                    print(name, tmpname)
+                    param.copy_(premodel[tmpname])
     if args.cur_year > args.begin_year and args.strategy == 'incremental':
         with torch.no_grad():
             for name, param in args.full_model.named_parameters():
+                print(name, premodel)
                 if name in ['module.node_emb_u', 'module.node_emb_d']:
-                    pre_node_len = premodel[prefix + name].size(0)
-                    tmp_emb = param.clone()
-                    tmp_emb[:pre_node_len] = premodel[prefix + name]
-                    param.copy_(tmp_emb)
+                    try:
+                        pre_node_len = premodel[prefix + name].size(0)
+                        tmp_emb = param.clone()
+                        tmp_emb[:pre_node_len] = premodel[prefix + name]
+                        param.copy_(tmp_emb)
+                    except:
+                        pre_node_len = premodel[name.replace('module.','')].size(0)
+                        tmp_emb = param.clone()
+                        tmp_emb[:pre_node_len] = premodel[name.replace('module.','')]
+                        param.copy_(tmp_emb)
                 else:
-                    param.copy_(premodel[prefix + name])
+                    try:
+                        param.copy_(premodel[prefix + name])
+                    except:
+                        param.copy_(premodel[name.replace('module.','')])
     return model
 
 def main(**kwargs):

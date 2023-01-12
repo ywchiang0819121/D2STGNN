@@ -57,7 +57,7 @@ class trainer():
         # loss
         # self.loss   = masked_mae
         self.loss   = torch.nn.L1Loss()
-        self.clip   = 5             # gradient clip
+        self.clip   = 5              # gradient clip
     
     def set_resume_lr_and_cl(self, epoch_num, batch_num):
         if batch_num == 0:
@@ -148,6 +148,8 @@ class trainer():
         self.optimizer.step()
 
         # metrics
+        predict = torch.clip(predict, min=0)
+        real_val = torch.clip(real_val, min=0)
         mape = masked_mape(predict,real_val,0.0)
         rmse = masked_rmse(predict,real_val,0.0)
         return mae_loss.item(), mape.item(), rmse.item()
@@ -186,6 +188,8 @@ class trainer():
             # metrics
             #loss = self.loss(predict, real_val, 0.0).item()
             loss = self.loss(predict, real_val).item()
+            predict = torch.clip(predict, min=0)
+            real_val = torch.clip(real_val, min=0)
             mape = masked_mape(predict,real_val,0.0).item()
             rmse = masked_rmse(predict,real_val,0.0).item()
             avgmae += loss

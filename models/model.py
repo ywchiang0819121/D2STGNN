@@ -8,47 +8,6 @@ from .dynamic_graph_conv import DynamicGraphConstructor
 from .decouple.estimation_gate import EstimationGate
 
 
-class SNorm(nn.Module):
-    def __init__(self,  channels):
-        super(SNorm, self).__init__()
-        self.beta = nn.Parameter(torch.zeros(channels))
-        self.gamma = nn.Parameter(torch.ones(channels))
-
-    def forward(self, x):
-        x_norm = (x - x.mean(1, keepdims=True)) / (x.var(1, keepdims=True, unbiased=True) + 0.00001) ** 0.5
-        out = x_norm * self.gamma.view(1, -1, 1, 1) + self.beta.view(1, -1, 1, 1)
-        return out
-
-
-class TNorm(nn.Module):
-    def __init__(self,  num_nodes, channels, track_running_stats=True, momentum=0.1):
-        super(TNorm, self).__init__()
-        self.track_running_stats = track_running_stats
-        self.beta = nn.Parameter(torch.zeros(1, channels, num_nodes, 1))
-        self.gamma = nn.Parameter(torch.ones(1, channels, num_nodes, 1))
-        self.register_buffer('running_mean', torch.zeros(1, channels, num_nodes, 1))
-        self.register_buffer('running_var', torch.ones(1, channels, num_nodes, 1))
-        self.momentum = momentum
-
-    def forward(self, x):
-        if self.track_running_stats:
-            mean = x.mean((2, 3), keepdims=True)
-            var = x.var((2, 3), keepdims=True, unbiased=False)
-            if self.training:
-                n = x.shape[3] * x.shape[0]
-                with torch.no_grad():
-                    self.running_mean = self.momentum * mean + (1 - self.momentum) * self.running_mean
-                    self.running_var = self.momentum * var * n / (n - 1) + (1 - self.momentum) * self.running_var
-            else:
-                mean = self.running_mean
-                var = self.running_var
-        else:
-            mean = x.mean((3), keepdims=True)
-            var = x.var((3), keepdims=True, unbiased=True)
-        x_norm = (x - mean) / (var + 0.00001) ** 0.5
-        out = x_norm * self.gamma + self.beta
-        return out
-
 class DecoupleLayer(nn.Module):
     def __init__(self, hidden_dim, fk_dim=256, **model_args):
         super().__init__()
@@ -117,8 +76,6 @@ class D2STGNN(nn.Module):
 
         # Decoupled Spatial Temporal Layer
         self.layers = nn.ModuleList()
-        self.tn = TNorm(self._num_nodes, model_args['gap'] * model_args['out_feat'])
-        self.sn = SNorm(model_args['gap'] * model_args['out_feat'])
         for _ in range(self._num_layers):
             self.layers.append(DecoupleLayer(self._hidden_dim, fk_dim=self._forecast_dim, **model_args))
 
@@ -182,10 +139,7 @@ class D2STGNN(nn.Module):
         # ==================== Prepare Input Data ==================== #
         # print('input')
         history_data, node_embedding_u, node_embedding_d, time_in_day_feat, day_in_week_feat   = self._prepare_inputs(history_data)
-        # print(history_data.size(), node_embedding_u.size(), node_embedding_d.size(), time_in_day_feat.size(), day_in_week_feat.size())
-        x_snorm = self.sn(history_data).view(history_data.shape[0], history_data.shape[2], 12, self._out_feat)
-        x_tnorm = self.tn(history_data).view(history_data.shape[0], history_data.shape[2], 12, self._out_feat)
-        
+        # print(history_data.size(), node_embedding_u.size(), node_embedding_d.size(), time_in_day_feat.size(), day_in_week_feat.size())       
 
         
         # ========================= Construct Graphs ========================== #
@@ -219,8 +173,6 @@ class D2STGNN(nn.Module):
         forecast    = self.out_fc_2(forecast)
         forecast    = forecast.transpose(1,2).contiguous()\
                 .view(forecast.shape[0], forecast.shape[2], 12, self._out_feat)
-        byforecast    = torch.cat([x_snorm, x_tnorm], axis=-1)
-        byforecast  = self.out_fc_3(byforecast).transpose(1,2)
-        forecast    = forecast.transpose(1,2) + history_data[..., :self._out_feat] + byforecast
+        forecast    = forecast.transpose(1,2) + history_data[..., :self._out_feat]
 
         return forecast

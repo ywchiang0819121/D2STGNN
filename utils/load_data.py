@@ -170,7 +170,7 @@ def load_dataset(data_dir, batch_size, valid_batch_size,
 
 
     else:   # traffic speed
-        scaler  = StandardScaler(mean=data_dict['x_train'][..., :].mean(), std=data_dict['x_train'][..., :].std())    # we only see the training data.
+        scaler  = StandardScaler(mean=data_dict['x_train'][..., :2].mean(), std=data_dict['x_train'][..., :2].std())    # we only see the training data.
 
         for mode in ['train', 'val', 'test']:
             # continue

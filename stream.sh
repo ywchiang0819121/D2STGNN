@@ -17,4 +17,4 @@
 #export USE_SIMPLE_THREADED_LEVEL3=1
 #export MKL_NUM_THREADS=1
 
-python main_stream.py
+/storage/internal/home/y-chiang/miniconda3/bin/python main_stream.py

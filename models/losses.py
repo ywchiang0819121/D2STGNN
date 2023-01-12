@@ -65,6 +65,8 @@ def masked_mape(preds, labels, null_val=np.nan):
 
 
 def metric(pred, real):
+    pred = torch.clip(pred, min=0)
+    real = torch.clip(real, min=0)
     mae = masked_mae(pred,real,0.0).item()
     mape = masked_mape(pred,real,0.0).item()
     rmse = masked_rmse(pred,real,0.0).item()
